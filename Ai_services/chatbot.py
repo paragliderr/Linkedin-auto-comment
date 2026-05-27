@@ -1,12 +1,12 @@
 from openai import OpenAI
 
-from config import (
+from Ai_services.config import (
     CHATBOT_API_KEY,
     BASE_URL,
     MODEL_NAME
 )
 
-from prompt import COMMENT_PROMPT
+from Ai_services.prompt import COMMENT_PROMPT
 
 client = OpenAI(
     api_key=CHATBOT_API_KEY,
