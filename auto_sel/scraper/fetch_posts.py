@@ -5,12 +5,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-# ── Patterns that make a URL a real post link (not a profile/company page) ─
 POST_URL_PATTERNS = re.compile(
     r"linkedin\.com/(posts/|feed/update/|pulse/)"
 )
 
-# Text that indicates a container is a sidebar widget, not a feed post
 JUNK_TEXT_PREFIXES = [
     "people you may know",
     "people in your network",
@@ -84,7 +82,7 @@ def fetch_posts(driver, target_posts: int = 20, max_scrolls: int = 25) -> list[d
     time.sleep(3)
     print(f"\nTarget: {target_posts} posts | Max scrolls: {max_scrolls}")
 
-    # ── Scroll until enough listitem containers are present ────────────────
+    #   Scroll until enough listitem containers are present 
     stall = 0
     last_count = 0
 
@@ -111,7 +109,7 @@ def fetch_posts(driver, target_posts: int = 20, max_scrolls: int = 25) -> list[d
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(3)
 
-    # ── Expand truncated posts ─────────────────────────────────────────────
+    # ── Expand truncated posts 
     print("\nExpanding truncated posts...")
     more_buttons = driver.find_elements(
         By.CSS_SELECTOR, "[data-testid='expandable-text-button']"
@@ -126,7 +124,7 @@ def fetch_posts(driver, target_posts: int = 20, max_scrolls: int = 25) -> list[d
             pass
     time.sleep(2)
 
-    # ── Extract content + URL from each container ──────────────────────────
+    # ── Extract content + URL from each container
     containers = driver.find_elements(
         By.CSS_SELECTOR,
         "div[role='listitem'][componentkey]"
@@ -138,7 +136,7 @@ def fetch_posts(driver, target_posts: int = 20, max_scrolls: int = 25) -> list[d
 
     for container in containers:
         try:
-            # 1. Find the text box scoped inside this container only
+            
             text_boxes = container.find_elements(
                 By.CSS_SELECTOR, "[data-testid='expandable-text-box']"
             )
@@ -147,11 +145,11 @@ def fetch_posts(driver, target_posts: int = 20, max_scrolls: int = 25) -> list[d
 
             content = _clean_content(text_boxes[0].text)
 
-            # 2. Length gate
+            #  Length gate
             if len(content) < MIN_CONTENT_LENGTH:
                 continue
 
-            # 3. Junk text gate
+            #  Junk text gate
             first_line = content.splitlines()[0].lower() if content else ""
             if any(first_line.startswith(j) for j in JUNK_TEXT_PREFIXES):
                 continue
@@ -162,7 +160,7 @@ def fetch_posts(driver, target_posts: int = 20, max_scrolls: int = 25) -> list[d
                 continue
             seen.add(key)
 
-            # 5. Get URL — scoped to this container
+            #  Get URL — scoped to this container
             url = _get_post_url(driver, container)
 
             posts.append({"post_url": url, "content": content})

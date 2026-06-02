@@ -19,8 +19,8 @@ def pick_posts(posts: list[dict]) -> list[dict]:
 
     print("\n" + "=" * 60)
     print("Enter post numbers separated by commas, or press Enter to keep ALL.")
-    print("Example:  1, 3, 5")
-    raw = input("Your selection: ").strip()
+
+    raw = input("Enter here: ").strip()
 
     if not raw:
         return posts
@@ -46,7 +46,7 @@ def main():
     print("  LinkedIn Comment Generator")
     print("────────────────────────────────")
     print("\n1. Login & save session")
-    print("2. Fetch posts → pick → save CSV\n")
+    print("2. Fetch posts -> pick -> save CSV\n")
 
     choice = input("Enter choice: ").strip()
 

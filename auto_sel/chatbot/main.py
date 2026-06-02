@@ -21,7 +21,6 @@ def main():
 
     df = pd.read_csv(CSV_PATH, encoding="utf-8-sig", dtype={"generated_comment": "object"})
 
-    # Force the column to string type so we can safely assign text into it
     df["generated_comment"] = df["generated_comment"].astype("object")
 
     print(f"  Loaded {len(df)} rows, columns: {list(df.columns)}")

@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CHATBOT_URL   = os.getenv("CHATBOT_URL")    # e.g. https://api.groq.com/openai/v1/chat/completions
-CHATBOT_API   = os.getenv("CHATBOT_API")    # your Groq API key
-CHATBOT_MODEL = os.getenv("CHATBOT_MODEL")  # e.g. llama3-8b-8192
+CHATBOT_URL   = os.getenv("CHATBOT_URL")    
+CHATBOT_API   = os.getenv("CHATBOT_API")    
+CHATBOT_MODEL = os.getenv("CHATBOT_MODEL") 
 
 SYSTEM_PROMPT = """You are a professional LinkedIn engagement specialist.
 Your job is to write thoughtful, genuine comments on LinkedIn posts.
@@ -22,10 +22,7 @@ Rules:
 
 
 def generate_comment(post_content: str) -> str:
-    """
-    Send a post to Groq and return a generated LinkedIn comment.
-    Returns empty string on failure so the CSV row is left blank.
-    """
+   
     if not all([CHATBOT_URL, CHATBOT_API, CHATBOT_MODEL]):
         raise EnvironmentError(
             "Missing one or more env vars: CHATBOT_URL, CHATBOT_API, CHATBOT_MODEL"

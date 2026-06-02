@@ -13,17 +13,16 @@ def save_posts(posts: list[dict], path: str = "data/posts.csv") -> None:
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
-    # Guarantee column order and presence regardless of what fetch_posts returns
     rows = []
     for post in posts:
         rows.append({
             "post_url": post.get("post_url", ""),
             "content": post.get("content", ""),
-            "generated_comment": "",          # AI fills this in later
+            "generated_comment": "",        
         })
 
     df = pd.DataFrame(rows, columns=["post_url", "content", "generated_comment"])
-    df.to_csv(path, index=False, encoding="utf-8-sig")   # utf-8-sig for Excel compat
+    df.to_csv(path, index=False, encoding="utf-8-sig")   
 
     print(f"\nSaved {len(rows)} posts → {path}")
     print(f"  Rows with URL : {df['post_url'].astype(bool).sum()}")
