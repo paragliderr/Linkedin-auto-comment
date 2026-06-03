@@ -3,14 +3,13 @@ import pickle
 from auto_sel.utils.driver import get_driver
 
 
-
 def load_session():
 
     driver = get_driver()
 
     driver.get("https://www.linkedin.com")
 
-    with open("auto_sel/auth/cookies.pkl", "rb") as file:
+    with open("auth/cookies.pkl", "rb") as file:
         cookies = pickle.load(file)
 
     for cookie in cookies:
@@ -22,4 +21,5 @@ def load_session():
     driver.refresh()
 
     return driver
+
 
