@@ -53,7 +53,8 @@ def scrape_posts(max_posts=MAX_POSTS):
                 text = post.inner_text()
 
                 posts.append({
-                    "post_text": text,
+                    "content": text,
+                    "post_url": "",
                     "status": "scraped"
                 })
 

@@ -1,3 +1,4 @@
+from unified_pipeline import run
 from fastapi import APIRouter
 
 from backend.schemas.comment_schema import CommentRequest, CommentResponse
@@ -11,3 +12,8 @@ router = APIRouter(prefix="/comments", tags=["Comments"])
 def generate_comment(request: CommentRequest):
     comment = generate_comment_service(request.post_text)
     return CommentResponse(comment=comment)
+
+@router.post("/run")
+def run_pipeline(scraper_type: str):
+    results = run(scraper_type)
+    return results
