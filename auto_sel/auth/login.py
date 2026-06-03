@@ -1,5 +1,6 @@
 import pickle
-from utils.driver import get_driver
+from auto_sel.utils.driver import get_driver
+import os 
 def login_and_save_session():
     driver = get_driver()
     try:
@@ -10,7 +11,8 @@ def login_and_save_session():
             "After you successfully reach the LinkedIn feed/home page,\n"
             "press Enter here..."
         )
-        with open("auth/cookies.pkl", "wb") as file:
+        cookie_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.pkl")
+        with open(cookie_path, "wb") as file:
             pickle.dump(driver.get_cookies(), file)
         print("\nSession saved successfully!")
         print("Cookies stored in auth/cookies.pkl")
@@ -18,3 +20,6 @@ def login_and_save_session():
         print(f"\nError during login: {e}")
     finally:
         driver.quit()
+
+if __name__ == "__main__":
+    login_and_save_session()

@@ -1,5 +1,5 @@
 from auth.login import login_and_save_session
-from auth.sessions import load_session
+from auto_sel.auth.session import load_session
 from scraper.fetch_posts import fetch_posts
 from scraper.save_csv import save_posts
 
