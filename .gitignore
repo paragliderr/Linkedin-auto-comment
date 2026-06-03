@@ -3,3 +3,4 @@ venv/
 __pycache__/
 automation/auth/state.json
 data/linkedin_posts.csvAi_services/.env
+Ai_services/.env
