@@ -1,26 +1,18 @@
 from auth.login import login_and_save_session
-from auth.session import load_session
+from auth.sessions import load_session
 from scraper.fetch_posts import fetch_posts
 from scraper.save_csv import save_posts
 
 
-def pick_posts(posts: list[dict]) -> list[dict]:
-    """
-    Show the user a numbered list of fetched posts and let them choose
-    which ones to keep before saving / generating comments.
-    """
-    print("\n" + "=" * 60)
-    print(f"  {len(posts)} posts fetched. Choose which to keep.\n")
+def pick_posts(posts):
+    print(f"\n{len(posts)} posts fetched.\n")
 
     for i, post in enumerate(posts, 1):
         preview = post["content"][:120].replace("\n", " ")
-        url_tag = "✓ URL" if post.get("post_url") else "✗ no URL"
-        print(f"  [{i:2d}] ({url_tag})  {preview}…")
+        url = "has URL" if post.get("post_url") else "no URL"
+        print(f"  [{i}] ({url}) {preview}...")
 
-    print("\n" + "=" * 60)
-    print("Enter post numbers separated by commas, or press Enter to keep ALL.")
-
-    raw = input("Enter here: ").strip()
+    raw = input("\nEnter post numbers to keep (e.g. 1,3,5) or Enter for ALL: ").strip()
 
     if not raw:
         return posts
@@ -28,25 +20,16 @@ def pick_posts(posts: list[dict]) -> list[dict]:
     selected = []
     for part in raw.split(","):
         part = part.strip()
-        if part.isdigit():
-            idx = int(part) - 1
-            if 0 <= idx < len(posts):
-                selected.append(posts[idx])
-            else:
-                print(f"  ⚠  Skipping out-of-range index {part}")
-        else:
-            print(f"  ⚠  Ignoring non-numeric input '{part}'")
+        if part.isdigit() and 0 <= int(part) - 1 < len(posts):
+            selected.append(posts[int(part) - 1])
 
-    print(f"\n{len(selected)} post(s) selected.")
+    print(f"{len(selected)} post(s) selected.")
     return selected
 
 
 def main():
-    print("\n────────────────────────────────")
-    print("  LinkedIn Comment Generator")
-    print("────────────────────────────────")
-    print("\n1. Login & save session")
-    print("2. Fetch posts -> pick -> save CSV\n")
+    print("\n1. Login and save session")
+    print("2. Scrape posts and save to CSV\n")
 
     choice = input("Enter choice: ").strip()
 
@@ -59,17 +42,17 @@ def main():
             posts = fetch_posts(driver)
 
             if not posts:
-                print("\nNo posts collected. Try scrolling manually first, or re-login.")
+                print("No posts found. Try re-logging in.")
                 return
 
             selected = pick_posts(posts)
 
             if not selected:
-                print("\nNo posts selected — nothing saved.")
+                print("Nothing selected — exiting.")
                 return
 
             save_posts(selected)
-            print("\nDone! Open data/posts.csv to review.")
+            print("Done! Check data/posts.csv")
 
         finally:
             driver.quit()
