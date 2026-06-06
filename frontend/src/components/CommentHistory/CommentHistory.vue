@@ -1,9 +1,14 @@
 <template>
 
-  <div>
+  <div class="history-section">
 
-    <button
-      class="btn btn-secondary mb-3"
+  <div class="history-header">
+    <h2>Comment History</h2>
+    <p>View and manage previously generated comments</p>
+  </div>
+
+  <button
+      class="history-btn"
       @click="loadHistory"
     >
       View Saved Comments
@@ -11,7 +16,7 @@
 
     <table
       v-if="history.length"
-      class="table table-striped"
+      class="history-table"
     >
 
       <thead>
@@ -31,13 +36,38 @@
         >
           <td>{{ item.id }}</td>
 
-          <td>{{ item.post_text }}</td>
+         <td class="post-cell">
+
+           <span v-if="!item.showFull">
+             {{
+                  item.post_text.length > 150
+                 ? item.post_text.slice(0,150)
+                 : item.post_text
+             }}
+          </span>
+
+          <span v-else>
+             {{ item.post_text }}
+          </span>
+
+         <button
+              v-if="item.post_text.length > 150"
+             class="view-btn"
+             @click="item.showFull = !item.showFull"
+             >
+             {{ item.showFull ? "Show Less" : "Show More" }}
+         </button>
+         </td>
 
           <td>
            <CommentEditor :post="item" />
           </td>
 
-          <td>{{ item.status }}</td>
+          <td>
+          <span class="badge" :class="item.status">
+          {{ item.status }}
+           </span>
+          </td>
         </tr>
 
       </tbody>
@@ -68,9 +98,117 @@ async function loadHistory() {
     ...item,
     editing: false,
     edited: item.status === "edited",
-    edited_comment: item.generated_comment
+    edited_comment: item.generated_comment,
+    showFull: false
   })
 )
 }
 
 </script>
+
+<style scoped>
+
+.history-section {
+  margin-top: 40px;
+}
+
+.history-header {
+  margin-bottom: 20px;
+}
+
+.history-header h2 {
+  color: white;
+  font-size: 1.3rem;
+}
+
+.history-header p {
+  color: #666;
+  margin-top: 4px;
+}
+
+.history-btn {
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.history-btn:hover {
+  opacity: .85;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 10px 14px;
+  color: #444;
+  border-bottom: 1px solid #1e1e1e;
+}
+
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #161616;
+  vertical-align: top;
+}
+
+.post-cell {
+  max-width: 350px;
+  color: #bbb;
+}
+
+.badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+}
+
+.badge.generated {
+  background: #0d2018;
+  color: #4caf7d;
+}
+
+.badge.edited {
+  background: #2a2200;
+  color: #f0c040;
+}
+
+.badge.error {
+  background: #200d0d;
+  color: #e05c5c;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+}
+
+.history-table th {
+  color: #444;
+  border-bottom: 1px solid #1e1e1e;
+}
+
+.history-table td {
+  color: #bbb;
+  border-bottom: 1px solid #161616;
+  padding: 12px 14px;
+}
+
+.view-btn {
+  display: block;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: #4caf7d;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+</style>
