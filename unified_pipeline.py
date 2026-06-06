@@ -1,6 +1,7 @@
 from automation.scrape_posts import scrape_posts
 from auto_sel.auth.session import load_session
 from auto_sel.scraper.fetch_posts import fetch_posts
+from automation.id_generator import get_next_id
 
 from automation.api_client import generate_comment
 from automation.save_data import save_posts
@@ -44,6 +45,7 @@ def run(scraper_type="selenium"):
         return
 
     final_posts = []
+    next_id = get_next_id()
 
     for i, post in enumerate(posts):
 
@@ -58,12 +60,14 @@ def run(scraper_type="selenium"):
 
             final_posts.append(
                 {
+                    "id":next_id,
                     "post_url": post.get("post_url", ""),
                     "post_text": post["content"],
                     "generated_comment": comment,
                     "status": "generated"
                 }
             )
+            next_id += 1
 
         except Exception as e:
 
@@ -71,12 +75,14 @@ def run(scraper_type="selenium"):
 
             final_posts.append(
                 {
+                    "id":next_id,
                     "post_url": post.get("post_url", ""),
                     "post_text": post["content"],
                     "generated_comment": "",
                     "status": "error"
                 }
             )
+            next_id += 1
 
     save_posts(final_posts)
 

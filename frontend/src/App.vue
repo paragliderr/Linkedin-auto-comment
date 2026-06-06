@@ -59,12 +59,15 @@
             :key="index"
           >
             <td>{{ post.post_text }}</td>
-            <td>{{ post.generated_comment }}</td>
+            <td>
+            <CommentEditor :post="post" />
+            </td>
           </tr>
         </tbody>
 
       </table>
-
+      <hr class="my-4">
+      <CommentHistory />
     </div>
 
   </div>
@@ -73,6 +76,8 @@
 <script setup>
 import { ref } from "vue"
 import api from "./services/api";
+import CommentEditor from "./components/CommentEditor/CommentEditor.vue"
+import CommentHistory from "./components/CommentHistory/CommentHistory.vue"
 
 const selectedScraper = ref("playwright")
 
@@ -93,10 +98,15 @@ async function runPipeline() {
         }
       }
     )
-    
+
     console.log(response.data)
 
-    posts.value = response.data
+    posts.value = response.data.map(post => ({
+    ...post,
+    editing: false,
+    edited: false,
+    edited_comment: post.generated_comment
+   }))
     status.value = "Pipeline completed"
   }
   catch (error) {
