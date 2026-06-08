@@ -2,8 +2,18 @@ from typing import List, Optional
 from unified_pipeline import run
 from fastapi import APIRouter, Query
 
-from backend.schemas.comment_schema import CommentRequest, CommentResponse
-from backend.services.comment_service import generate_comment_service
+from backend.schemas.comment_schema import (
+    CommentRequest,
+    CommentResponse,
+    ImproveCommentRequest,
+    ImproveCommentResponse
+)
+
+
+from backend.services.comment_service import (
+    generate_comment_service,
+    improve_comment_service
+)
 
 import pandas as pd
 from pathlib import Path
@@ -28,6 +38,22 @@ def delete_post(post_text: str = Query(...)):
 def generate_comment(request: CommentRequest):
     comment = generate_comment_service(request.post_text)
     return CommentResponse(comment=comment)
+
+@router.post(
+    "/improve",
+    response_model=ImproveCommentResponse
+)
+def improve_comment_route(
+    request: ImproveCommentRequest
+):
+    comment = improve_comment_service(
+        request.comment,
+        request.instruction
+    )
+
+    return ImproveCommentResponse(
+        comment=comment
+    )
 
 
 @router.post("/run")

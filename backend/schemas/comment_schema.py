@@ -7,3 +7,11 @@ class CommentRequest(BaseModel):
 
 class CommentResponse(BaseModel):
     comment: str
+    
+class ImproveCommentRequest(BaseModel):
+    comment: str
+    instruction: str
+
+
+class ImproveCommentResponse(BaseModel):
+    comment: str

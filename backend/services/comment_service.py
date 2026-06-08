@@ -1,5 +1,5 @@
 from Ai_services.chatbot import generate_comment
-
+from Ai_services.comment_assistant import improve_comment
 
 def generate_comment_service(post_text: str) -> str:
     """
@@ -7,3 +7,13 @@ def generate_comment_service(post_text: str) -> str:
     """
 
     return generate_comment(post_text)
+
+def improve_comment_service(
+    comment: str,
+    instruction: str
+) -> str:
+
+    return improve_comment(
+        comment,
+        instruction
+    )
