@@ -25,13 +25,14 @@
           <th>Post</th>
           <th>Comment</th>
           <th>Status</th>
+          <th></th>
         </tr>
       </thead>
 
       <tbody>
 
         <tr
-          v-for="item in history"
+          v-for="(item,index) in history"
           :key="item.id"
         >
           <td>{{ item.id }}</td>
@@ -68,6 +69,16 @@
           {{ item.status }}
            </span>
           </td>
+
+          <td>
+          <button
+          class="delete-btn"
+          @click="removeHistoryItem(index)"
+          title="Remove row"
+          >
+            ✕
+           </button>
+          </td>
         </tr>
 
       </tbody>
@@ -83,7 +94,8 @@
 import { ref } from "vue"
 
 import {
-  getHistory
+  getHistory,
+  deletePost
 } from "../../services/historyService"
 
 import CommentEditor
@@ -102,6 +114,22 @@ async function loadHistory() {
     showFull: false
   })
 )
+}
+
+async function removeHistoryItem(index) {
+    
+  if (!confirm("Delete this comment?")) {
+  return
+  }
+
+  const item = history.value[index]
+
+  try {
+    await deletePost(item.post_text)
+    history.value.splice(index, 1)
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 </script>
@@ -210,5 +238,21 @@ td {
   color: #4caf7d;
   cursor: pointer;
   font-size: 0.8rem;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+}
+
+.delete-btn:hover {
+  color: #e05c5c;
+  background: #200d0d;
 }
 </style>
