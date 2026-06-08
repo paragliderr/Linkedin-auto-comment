@@ -88,6 +88,7 @@
               <th>Post</th>
               <th>Generated Comment</th>
               <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -105,6 +106,9 @@
                 <span class="badge" :class="post.status">
                   {{ post.status }}
                 </span>
+              </td>
+              <td>
+              <button class="delete-btn" @click="removePost(i)" title="Remove row">✕</button>
               </td>
             </tr>
           </tbody>
@@ -156,6 +160,19 @@ function addKeyword() {
 
 function removeKeyword(i) {
   keywords.value.splice(i, 1)
+}
+async function removePost(i) {
+  const post = posts.value[i]
+  
+  try {
+    await api.delete("/comments/post", {
+      params: { post_text: post.post_text }
+    })
+  } catch (err) {
+    console.error("Failed to delete from CSV:", err)
+  }
+  
+  posts.value.splice(i, 1)
 }
 
 async function runPipeline() {
@@ -233,7 +250,20 @@ statusClass.value = "done"
   border-radius: 12px;
   overflow: hidden;
 }
-
+.delete-btn {
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+}
+.delete-btn:hover {
+  color: #e05c5c;
+  background: #200d0d;
+}
 .header {
   padding: 32px 36px 24px;
   border-bottom: 1px solid #1e1e1e;
