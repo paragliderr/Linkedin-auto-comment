@@ -88,6 +88,7 @@
               <th>Post</th>
               <th>Generated Comment</th>
               <th>Status</th>
+              <th>Original Post</th>
               <th></th>
             </tr>
           </thead>
@@ -106,6 +107,16 @@
                 <span class="badge" :class="post.status">
                   {{ post.status }}
                 </span>
+              </td>
+              <td>
+               <a
+                 v-if="post.post_url"
+                 :href="post.post_url"
+                 target="_blank"
+                  class="view-post-btn"
+                >
+                  View Post
+                </a>
               </td>
               <td>
               <button class="delete-btn" @click="removePost(i)" title="Remove row">✕</button>
@@ -384,4 +395,21 @@ td.text  { max-width: 360px; white-space: pre-wrap; word-break: break-word; colo
 .badge.error     { background: #200d0d; color: #e05c5c; }
 
 .empty { padding: 60px 36px; text-align: center; color: #333; font-size: 0.9rem; }
+
+.view-post-btn {
+  display: inline-block;
+  padding: 5px 12px;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #0d0d0d;
+  color: #4caf7d;
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: all .15s;
+}
+
+.view-post-btn:hover {
+  background: #16241c;
+  border-color: #4caf7d;
+}
 </style>

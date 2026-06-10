@@ -25,6 +25,7 @@
           <th>Post</th>
           <th>Comment</th>
           <th>Status</th>
+          <th>Original Post</th>
           <th></th>
         </tr>
       </thead>
@@ -69,6 +70,16 @@
           {{ item.status }}
            </span>
           </td>
+          <td>
+           <a
+           v-if="item.post_url"
+           :href="item.post_url"
+           target="_blank"
+           class="view-post-btn"
+           >
+            View Post
+           </a>
+         </td>
 
           <td>
           <button
@@ -117,7 +128,7 @@ async function loadHistory() {
 }
 
 async function removeHistoryItem(index) {
-    
+
   if (!confirm("Delete this comment?")) {
   return
   }
@@ -254,5 +265,22 @@ td {
 .delete-btn:hover {
   color: #e05c5c;
   background: #200d0d;
+}
+
+.view-post-btn {
+  display: inline-block;
+  padding: 5px 12px;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #0d0d0d;
+  color: #4caf7d;
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: all .15s;
+}
+
+.view-post-btn:hover {
+  background: #16241c;
+  border-color: #4caf7d;
 }
 </style>
