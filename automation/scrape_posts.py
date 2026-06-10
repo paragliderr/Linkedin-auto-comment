@@ -20,7 +20,12 @@ def scrape_posts(max_posts=MAX_POSTS):
         )
 
         context = browser.new_context(
-            storage_state=STATE_PATH
+            storage_state=STATE_PATH,
+            permissions=[
+                 "clipboard-read",
+                 "clipboard-write"
+             ]
+                  
         )
 
         page = context.new_page()
@@ -45,16 +50,29 @@ def scrape_posts(max_posts=MAX_POSTS):
             try:
 
                 menu = menus.nth(i)
-
+                
+                menu.click()
+                page.wait_for_timeout(1500)
+                page.get_by_text(
+                     "Copy link to post"
+                ).click()
+                
+                page.wait_for_timeout(2000)
+                
+                url = page.evaluate(
+                     "() => navigator.clipboard.readText()"
+                )
+                
+                page.keyboard.press("Escape")
                 post = menu.locator(
                     "xpath=../.."
                 )
-
+                
                 text = post.inner_text()
-
+            
                 posts.append({
                     "content": text,
-                    "post_url": "",
+                    "post_url": url,
                     "status": "scraped"
                 })
 
@@ -88,5 +106,5 @@ if __name__ == "__main__":
         print("=" * 60)
 
         print(
-            post["post_text"][:500]
+            post["content"][:500]
         )
