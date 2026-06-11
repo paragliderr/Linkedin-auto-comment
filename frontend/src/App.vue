@@ -162,7 +162,7 @@ function addKeyword() {
   const raw = keywordInput.value.trim()
   if (!raw) return
 
-  raw.split(",")
+  raw.split(",") 
     .map(k => k.trim())
     .filter(k => k && !keywords.value.includes(k))
     .forEach(k => keywords.value.push(k))
