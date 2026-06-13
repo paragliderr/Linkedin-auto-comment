@@ -1,6 +1,8 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 
 from backend.routes.comment_routes import router as comment_router
 from backend.routes.history_routes import router as history_router
@@ -16,11 +18,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 @app.get("/")
 def home():
     return {"message": "Backend is running"}
-
 
 app.include_router(comment_router)
 app.include_router(history_router)

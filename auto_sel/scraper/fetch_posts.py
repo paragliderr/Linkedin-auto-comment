@@ -9,7 +9,7 @@ JUNK_PREFIXES = ["people you may know", "people in your network", "add to your f
                  "suggested for you", "promoted", "try premium", "news"]
 
 
-def _get_post_url(driver, container) -> str:
+def _get_post_url_from_anchors(driver, container) -> str:
     return driver.execute_script("""
         var anchors = arguments[0].querySelectorAll('a[href]');
         var best = null;
@@ -22,6 +22,41 @@ def _get_post_url(driver, container) -> str:
         return best ? best.split('?')[0] : '';
     """, container) or ""
 
+import pyperclip
+
+def _get_post_url_from_menu(driver, container) -> str:
+    try:
+        menu_btn = container.find_element(
+            By.CSS_SELECTOR,
+            "button[aria-label*='Open control menu for post by']"
+        )
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", menu_btn)
+        time.sleep(0.3)
+        menu_btn.click()
+        time.sleep(1)
+
+        copy_btn = WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Copy link to post')]"))
+        )
+        copy_btn.click()
+        time.sleep(1)
+
+        url = pyperclip.paste()
+
+        from selenium.webdriver.common.keys import Keys
+        driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+        time.sleep(0.3)
+
+        return url.strip() if url else ""
+
+    except Exception as e:
+        print(f"  Menu URL fallback failed: {e}")
+        try:
+            from selenium.webdriver.common.keys import Keys
+            driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+        except:
+            pass
+        return ""
 
 def fetch_posts(driver, target_posts=20, max_scrolls=25):
     driver.get("https://www.linkedin.com/feed/")
@@ -36,7 +71,7 @@ def fetch_posts(driver, target_posts=20, max_scrolls=25):
     time.sleep(3)
     print(f"\nTarget: {target_posts} posts | Max scrolls: {max_scrolls}")
 
-    # Scroll down until we have enough post cards
+
     stall, last_count = 0, 0
     for i in range(1, max_scrolls + 1):
         count = len(driver.find_elements(By.CSS_SELECTOR, "div[role='listitem'][componentkey]"))
@@ -51,7 +86,7 @@ def fetch_posts(driver, target_posts=20, max_scrolls=25):
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(3)
 
-    # Click all see more buttons so we get full post text
+
     buttons = driver.find_elements(By.CSS_SELECTOR, "[data-testid='expandable-text-button']")
     print(f"\nExpanding {len(buttons)} truncated posts...")
     for btn in buttons:
@@ -85,7 +120,9 @@ def fetch_posts(driver, target_posts=20, max_scrolls=25):
                 continue
 
             seen.add(content[:200])
-            posts.append({"post_url": _get_post_url(driver, container), "content": content})
+
+            url = _get_post_url_from_menu(driver, container)
+            posts.append({"post_url": url, "content": content})
 
             if len(posts) >= target_posts:
                 break

@@ -28,9 +28,18 @@
       >
        AI Assistant
       </button>
+      <button
+  class="btn btn-sm btn-outline-success ms-2"
+  :disabled="posting || post.posted"
+  @click="postToLinkedIn"
+>
+  {{ post.posted ? "Posted ✓" : (posting ? "Posting..." : "Post Comment") }}
+</button>
 
+<span v-if="postStatus === 'failed'" class="badge bg-danger ms-2">
+  Failed to post
+</span>
     </div>
-
 
     <div
        v-if="showAssistant"
@@ -114,7 +123,43 @@
 import { ref } from "vue"
 import { updateComment } from "../../services/commentEditService"
 import { improveComment } from "../../services/aiAssistantService"
+import api from "../../services/api"
 
+const posting = ref(false)
+const postStatus = ref("")
+
+async function postToLinkedIn() {
+  if (!props.post.post_url) {
+    alert("No post URL available")
+    return
+  }
+
+  if (!confirm("This will post the comment live on LinkedIn. Continue?")) {
+    return
+  }
+
+  posting.value = true
+  postStatus.value = ""
+
+  try {
+    const response = await api.post("/comments/post-to-linkedin", {
+      post_url: props.post.post_url,
+      comment_text: props.post.edited_comment
+    })
+
+    if (response.data.success) {
+      postStatus.value = "posted"
+      props.post.posted = true
+    } else {
+      postStatus.value = "failed"
+    }
+  } catch (err) {
+    console.error(err)
+    postStatus.value = "failed"
+  } finally {
+    posting.value = false
+  }
+}
 const props = defineProps({
   post: Object
 })
