@@ -4,10 +4,9 @@ from auto_sel.utils.driver import get_driver
 
 
 def load_session():
-
     driver = get_driver()
-
     driver.get("https://www.linkedin.com")
+    
     cookie_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.pkl")
     with open(cookie_path, "rb") as file:
         cookies = pickle.load(file)
@@ -18,8 +17,6 @@ def load_session():
         except Exception as e:
             print(f"Skipped cookie: {e}")
 
-    driver.refresh()
-
+    driver.get("https://www.linkedin.com/feed/")  
     return driver
-
 

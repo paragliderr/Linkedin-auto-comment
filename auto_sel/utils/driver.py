@@ -18,8 +18,11 @@ def get_driver():
         "profile.content_settings.exceptions.clipboard": {"*": {"setting": 2}}
     })
 
+    from webdriver_manager.chrome import ChromeDriverManager
+    from webdriver_manager.core.os_manager import ChromeType
+
     driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
+        service=Service(ChromeDriverManager(chrome_type=ChromeType.GOOGLE).install()),
         options=options
     )
 

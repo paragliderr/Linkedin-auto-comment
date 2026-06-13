@@ -5,33 +5,35 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException
 
 
-def _find_button_by_text(driver, *labels):
-    for btn in driver.find_elements(By.TAG_NAME, "button"):
-        try:
-            if btn.text.strip().lower() in [l.lower() for l in labels]:
-                return btn
-        except StaleElementReferenceException:
-            continue
+def _find_submit_button(driver):
+    selectors = [
+        "button.comments-comment-box__submit-button--cr",
+        "button[class*='comments-comment-box__submit']",
+    ]
+    for sel in selectors:
+        btns = driver.find_elements(By.CSS_SELECTOR, sel)
+        if btns:
+            return btns[0]
     return None
 
-
 def _type_into_editor(driver, box, text):
-    """
-    Type text into a Quill editor using JS + clipboard injection.
-    Avoids ActionChains and send_keys which crash ChromeDriver on Apple Silicon.
-    """
-    # Focus the box first    driver.execute_script("arguments[0].focus();", box)
     time.sleep(0.3)
+
+    driver.execute_script("arguments[0].focus();", box)
+    time.sleep(0.2)
 
     driver.execute_script("""
         var el = arguments[0];
         var text = arguments[1];
-        el.focus();
-        // Use execCommand so Quill registers the change as a real input event
-        document.execCommand('selectAll', false, null);
-        document.execCommand('insertText', false, text);
+        el.innerText = text;
     """, box, text)
-    time.sleep(0.5)
+    time.sleep(0.3)
+
+    driver.execute_script("""
+        var el = arguments[0];
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    """, box)
+    time.sleep(0.8)
 
 
 def post_comment(driver, post_url: str, comment_text: str) -> bool:
@@ -64,12 +66,15 @@ def post_comment(driver, post_url: str, comment_text: str) -> bool:
         if not submit_btn:
             print("Submit button not found")
             return False
+        
+        is_disabled = driver.execute_script("return arguments[0].disabled;", submit_btn)
+        print(f"Submit button disabled state: {is_disabled}")
 
-        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", submit_btn)
-        time.sleep(0.3)
-        driver.execute_script("arguments[0].click();", submit_btn)
-        time.sleep(2)
-        return True
+        if is_disabled:
+            print("Submit button is disabled — text may not have registered")
+            return False
+
+
 
     except Exception as e:
         print(f"Failed to post comment: {e}")
