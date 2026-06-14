@@ -95,6 +95,19 @@
           <span>{{ allSelected ? "Deselect all" : "Select all" }}</span>
         </label>
 
+        <select v-model="statusFilter" class="filter-select">
+          <option value="all">All</option>
+          <option value="generated">Generated</option>
+          <option value="edited">Edited</option>
+          <option value="posted">Posted</option>
+          <option value="failed">Failed</option>
+       </select>
+
+       <select v-model="sortOrder" class="filter-select">
+         <option value="newest">Newest First</option>
+         <option value="oldest">Oldest First</option>
+       </select>
+
         <button
           class="bulk-delete-btn"
           v-if="selectedCount"
@@ -107,7 +120,7 @@
       <div class="cards-wrap" v-if="posts.length">
         <div
           class="post-card"
-          v-for="(post, i) in posts"
+          v-for="(post, i) in filteredPosts"
           :key="i"
           :class="[post.status, { selected: post.selected }]"
         >
@@ -175,13 +188,30 @@ const status           = ref("Ready")
 const statusClass      = ref("idle")
 const loading          = ref(false)
 const posts            = ref([])
+const statusFilter     = ref("all")
+const sortOrder        = ref("newest")
 
 const successCount = computed(() => posts.value.filter(p => p.status === "generated").length)
 const errorCount   = computed(() => posts.value.filter(p => p.status === "error").length)
 const selectedCount = computed(() => posts.value.filter(p => p.selected).length)
 const allSelected   = computed(() => posts.value.length > 0 && posts.value.every(p => p.selected))
 const someSelected  = computed(() => posts.value.some(p => p.selected))
+const filteredPosts = computed(() => {
 
+  let result = [...posts.value]
+
+  if (statusFilter.value !== "all") {
+    result = result.filter(
+      post => post.status === statusFilter.value
+    )
+  }
+
+  if (sortOrder.value === "newest") {
+    result.reverse()
+  }
+
+  return result
+})
 function addKeyword() {
   const raw = keywordInput.value.trim()
   if (!raw) return
@@ -430,6 +460,15 @@ select:focus, input:focus { border-color: #444; }
   border-bottom: 1px solid #1a1a1a;
 }
 
+.filter-select {
+  background: #0d0d0d;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #ddd;
+  padding: 6px 12px;
+  max-width: 180px;
+}
+
 .select-all {
   display: flex;
   align-items: center;
@@ -598,12 +637,33 @@ select:focus, input:focus { border-color: #444; }
 }
 
 .badge {
-  padding: 3px 10px; border-radius: 20px;
-  font-size: 0.7rem; font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 500;
   white-space: nowrap;
 }
-.badge.generated { background: #0d2018; color: #4caf7d; }
-.badge.error     { background: #200d0d; color: #e05c5c; }
+
+.badge.generated {
+  background: #0d2018;
+  color: #4caf7d;
+}
+
+.badge.edited {
+  background: #2a2200;
+  color: #f0c040;
+}
+
+.badge.posted {
+  background: #0d1a2a;
+  color: #4da3ff;
+}
+
+.badge.error,
+.badge.failed {
+  background: #200d0d;
+  color: #e05c5c;
+}
 
 .view-post-btn {
   display: inline-block;
