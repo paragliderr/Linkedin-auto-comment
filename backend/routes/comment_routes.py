@@ -7,7 +7,7 @@ from pydantic import BaseModel
 import pandas as pd
 from pathlib import Path
 
-from unified_pipeline import run
+from unified_pipeline import run , get_job
 from backend.schemas.comment_schema import (
     CommentRequest, CommentResponse,
     ImproveCommentRequest, ImproveCommentResponse
@@ -73,3 +73,10 @@ def run_pipeline(
     match_mode: str = Query(default="any")
 ):
     return run(scraper_type=scraper_type, keywords=keywords, match_mode=match_mode)
+
+@router.get("/run/status/{job_id}")
+def get_run_status(job_id: str):
+    job = get_job(job_id)
+    if not job:
+        return {"status": "not_found"}
+    return job
