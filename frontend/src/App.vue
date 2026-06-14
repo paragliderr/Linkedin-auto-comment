@@ -148,8 +148,7 @@
         </div>
       </div>
 
-      <hr class="my-4" v-if="posts.length">
-      <CommentHistory />
+      <!-- History removed temporarily -->
 
       <div class="empty" v-if="!posts.length && !loading">
         Run the pipeline to see results here.
@@ -161,11 +160,11 @@
 
 <script setup>
 
-import { ref, computed } from "vue"
+import { ref, computed,onMounted } from "vue"
 import api from "./services/api"
 
 import CommentEditor from "./components/CommentEditor/CommentEditor.vue"
-import CommentHistory from "./components/CommentHistory/CommentHistory.vue"
+import { getHistory } from "./services/historyService"
 
 
 const selectedScraper = ref("selenium")
@@ -252,16 +251,18 @@ async function runPipeline() {
         : kw
     })
 
-    const response = await api.post(
+    await api.post(
       "/comments/run",
       null,
       { params }
     )
 
-    posts.value = response.data.map(post => ({
+    const history = await getHistory()
+    
+    posts.value = history.map(post => ({
       ...post,
       editing: false,
-      edited: false,
+     edited: post.status === "edited",
       edited_comment: post.generated_comment,
       selected: false
     }))
@@ -279,6 +280,23 @@ async function runPipeline() {
     loading.value = false
   }
 }
+
+async function loadComments() {
+
+  const history = await getHistory()
+
+  posts.value = history.map(post => ({
+    ...post,
+    editing: false,
+    edited: post.status === "edited",
+    edited_comment: post.generated_comment,
+    selected: false
+  }))
+}
+
+onMounted(() => {
+  loadComments()
+})
 </script>
 
 <style scoped>
@@ -498,12 +516,11 @@ select:focus, input:focus { border-color: #444; }
 
 .post-card-body {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   min-width: 0;
 }
-
 @media (max-width: 760px) {
   .post-card-body {
     grid-template-columns: 1fr;
@@ -549,8 +566,8 @@ select:focus, input:focus { border-color: #444; }
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  border-left: 1px solid #1a1a1a;
-  padding-left: 20px;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 16px;
 }
 @media (max-width: 760px) {
   .comment-col {
