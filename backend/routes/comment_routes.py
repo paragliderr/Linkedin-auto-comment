@@ -22,13 +22,11 @@ _driver = None
 
 def get_driver():
     global _driver
-   
     if _driver is not None:
         try:
             _ = _driver.current_url  
         except Exception:
             _driver = None  
-
     if _driver is None:
         _driver = load_session()
 

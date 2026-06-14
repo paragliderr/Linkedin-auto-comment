@@ -51,7 +51,6 @@ def post_comment(driver, post_url: str, comment_text: str) -> bool:
         _type_into_editor(driver, comment_box, comment_text)
         time.sleep(1)
 
-        
         submit_btn = driver.execute_script("""
             var editor = arguments[0];
             var container = editor.closest('form') || editor.closest('[class*="comments-comment-box"]') || editor.parentElement.parentElement.parentElement;
@@ -77,10 +76,25 @@ def post_comment(driver, post_url: str, comment_text: str) -> bool:
 
         driver.execute_script("arguments[0].scrollIntoView({block:'center'});", submit_btn)
         time.sleep(0.3)
-        driver.execute_script("arguments[0].click();", submit_btn)
+        driver.execute_script("""
+            var btn = arguments[0];
+            var rect = btn.getBoundingClientRect();
+            var x = rect.left + rect.width / 2;
+            var y = rect.top + rect.height / 2;
+            ['mousedown', 'mouseup', 'click'].forEach(function(type) {
+                var ev = new MouseEvent(type, {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: x,
+                    clientY: y
+                });
+                btn.dispatchEvent(ev);
+            });
+        """, submit_btn)
         time.sleep(2)
         return True
-    
+
     except Exception as e:
         print(f"Failed to post comment: {e}")
         return False
