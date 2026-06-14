@@ -625,7 +625,6 @@ select:focus, input:focus { border-color: #444; }
 }
 .comment-col-head .col-label { margin-bottom: 0; }
 
-/* Ensure comment text is visible regardless of CommentEditor's own styles */
 .comment-col :deep(*) {
   color: #ddd;
 }
