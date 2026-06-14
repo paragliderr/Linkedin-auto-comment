@@ -2,8 +2,15 @@
   <div>
 
     <div v-if="!post.editing">
-
-      {{ post.edited_comment }}
+      <div
+        class="comment-text"
+         @click="
+           post.original_comment = post.edited_comment;
+           post.editing = true
+          "
+        >
+          {{ post.edited_comment }}
+      </div>
 
       <span
       v-if="post.edited"
@@ -12,15 +19,7 @@
      Edited
      </span>
 
-      <button
-        class="btn btn-sm btn-outline-primary ms-2"
-        @click="
-         post.original_comment = post.edited_comment;
-         post.editing = true
-         "
-      >
-        Edit
-      </button>
+      
 
       <button
          class="btn btn-sm btn-outline-success ms-2"
@@ -150,8 +149,10 @@ async function postToLinkedIn() {
     if (response.data.success) {
       postStatus.value = "posted"
       props.post.posted = true
+      props.post.status = "posted"
     } else {
       postStatus.value = "failed"
+      props.post.status = "failed"
     }
   } catch (err) {
     console.error(err)
@@ -196,7 +197,7 @@ async function saveEdit() {
       props.post.edited_comment
 
     props.post.edited = true
-
+    props.post.status = "edited"
     props.post.editing = false
 
   }
@@ -289,3 +290,17 @@ async function applySuggestion() {
 }
 
 </script>
+
+<style scoped>
+
+.comment-text {
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.comment-text:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+</style>
