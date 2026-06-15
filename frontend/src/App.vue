@@ -161,7 +161,6 @@
         </div>
       </div>
 
-      <!-- History removed temporarily -->
 
       <div class="empty" v-if="!posts.length && !loading">
         Run the pipeline to see results here.
