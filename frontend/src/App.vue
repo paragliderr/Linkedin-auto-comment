@@ -115,6 +115,14 @@
         >
           Remove {{ selectedCount }} selected
         </button>
+
+        <button
+         class="post-selected-btn"
+         v-if="selectedCount"
+         @click="postSelected"
+       >
+          Post {{ selectedCount }} selected
+       </button>
       </div>
 
       <div class="cards-wrap" v-if="posts.length">
@@ -161,6 +169,7 @@
         </div>
       </div>
 
+      <!-- History removed temporarily -->
 
       <div class="empty" v-if="!posts.length && !loading">
         Run the pipeline to see results here.
@@ -261,6 +270,62 @@ async function removeSelected() {
   posts.value = posts.value.filter(p => !p.selected)
 }
 
+async function postSelected() {
+
+  const selectedPosts =
+    posts.value.filter(
+      post => post.selected
+    )
+
+  if (!selectedPosts.length) {
+    alert("No posts selected")
+    return
+  }
+
+  if (
+    !confirm(
+      `Post ${selectedPosts.length} selected comments to LinkedIn?`
+    )
+  ) {
+    return
+  }
+
+  for (const post of selectedPosts) {
+
+    try {
+
+      const response =
+        await api.post(
+          "/comments/post-to-linkedin",
+          {
+            post_url: post.post_url,
+            comment_text: post.edited_comment
+          }
+        )
+
+      if (response.data.success) {
+
+        post.posted = true
+        post.status = "posted"
+
+      } else {
+
+        post.status = "failed"
+
+      }
+
+    } catch (err) {
+
+      console.error(err)
+
+      post.status = "failed"
+
+    }
+  }
+
+  alert("Posting completed")
+}
+
 async function runPipeline() {
   if (keywordInput.value.trim()) addKeyword()
 
@@ -293,7 +358,8 @@ async function runPipeline() {
       editing: false,
      edited: post.status === "edited",
       edited_comment: post.generated_comment,
-      selected: false
+      selected: false,
+     posted: post.status === "posted"
     }))
 
     status.value = `Done — ${posts.value.length} posts processed`
@@ -319,7 +385,8 @@ async function loadComments() {
     editing: false,
     edited: post.status === "edited",
     edited_comment: post.generated_comment,
-    selected: false
+    selected: false,
+   posted: post.status === "posted"
   }))
 }
 
@@ -499,6 +566,21 @@ select:focus, input:focus { border-color: #444; }
   background: #2a1010;
   border-color: #e05c5c;
   color: #ff8c8c;
+}
+
+.post-selected-btn {
+  background: #0d1a2a;
+  border: 1px solid #234060;
+  color: #4da3ff;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.post-selected-btn:hover {
+  background: #10233a;
 }
 
 /* ---------- Post cards ---------- */

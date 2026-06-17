@@ -15,6 +15,7 @@ from backend.schemas.comment_schema import (
 from backend.services.comment_service import generate_comment_service, improve_comment_service
 from auto_sel.auth.session import load_session
 from auto_sel.scraper.post_comment import post_comment as post_comment_fn
+from backend.services.post_status_service import mark_as_posted
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 
@@ -40,10 +41,21 @@ class PostCommentRequest(BaseModel):
 
 @router.post("/post-to-linkedin")
 def post_to_linkedin(request: PostCommentRequest):
-    driver = get_driver()
-    success = post_comment_fn(driver, request.post_url, request.comment_text)
-    return {"success": success}
 
+    driver = get_driver()
+
+    success = post_comment_fn(
+        driver,
+        request.post_url,
+        request.comment_text
+    )
+
+    if success:
+        mark_as_posted(
+            request.post_url
+        )
+
+    return {"success": success}
 
 @router.delete("/post")
 def delete_post(post_text: str = Query(...)):
