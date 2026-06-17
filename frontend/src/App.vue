@@ -2,11 +2,14 @@
   <div class="app">
 
     <div class="card main-card">
+
       <div class="header">
         <h1>LinkedIn Auto Commenter</h1>
         <p class="subtitle">AI-powered comments · Keyword filtering · Two scrapers</p>
       </div>
+
       <div class="controls">
+
         <div class="scraper-pill-container">
           <div class="scraper-pill">
             <button
@@ -20,48 +23,61 @@
           </div>
         </div>
 
-        <div class="field">
-          <label>Keywords <span class="hint">(comma-separated, leave empty for all posts)</span></label>
-          <input
-            v-model="keywordInput"
-            placeholder="e.g. AI, hiring, startup"
-            @keyup.enter="addKeyword"
-          />
-          <div class="tags" v-if="keywords.length">
-            <span
-              class="tag"
-              v-for="(kw, i) in keywords"
-              :key="i"
-            >
-              {{ kw }}
-              <button @click="removeKeyword(i)">×</button>
-            </span>
+        <div class="field super-field">
+          <label>Target Keywords <span class="hint">(Press Enter to add tags)</span></label>
+          
+          <div class="super-input" :class="{ 'is-focused': inputFocused }">
+            
+            <div class="tags-and-input">
+              <span
+                class="tag"
+                v-for="(kw, i) in keywords"
+                :key="i"
+              >
+                {{ kw }}
+                <button @click="removeKeyword(i)">✕</button>
+              </span>
+              
+              <input
+                v-model="keywordInput"
+                placeholder="Type keywords (e.g. AI, hiring)..."
+                @keyup.enter="addKeyword"
+                @focus="inputFocused = true"
+                @blur="inputFocused = false"
+              />
+            </div>
+
+            <div class="inline-match-mode" v-if="keywords.length > 0 || keywordInput.length > 0">
+              <div class="divider"></div>
+              <div class="mini-toggle">
+                <button 
+                  :class="{ active: matchMode === 'any' }" 
+                  @click="matchMode = 'any'"
+                >Any keyword</button>
+                <button 
+                  :class="{ active: matchMode === 'all' }" 
+                  @click="matchMode = 'all'"
+                >All keywords</button>
+              </div>
+            </div>
+
           </div>
         </div>
+        <div class="field super-field">
+          <label>
+            Your Goal
+            <span class="hint">
+             (helps AI generate personalized comments)
+           </span>
+          </label>
 
-       <div class="field">
-         <label>Your Goal</label>
-
-         <input
-           v-model="userGoal"
-           placeholder="e.g. Get internships, network with recruiters, build AI presence"
-          />
-        </div>
-
-
-        <div class="field">
-          <label>Match Mode</label>
-          <div class="toggle">
-            <button
-              :class="{ active: matchMode === 'any' }"
-              @click="matchMode = 'any'"
-            >Any keyword</button>
-            <button
-              :class="{ active: matchMode === 'all' }"
-              @click="matchMode = 'all'"
-            >All keywords</button>
+          <div class="super-input">
+            <input
+             v-model="userGoal"
+             placeholder="e.g. Get internships, connect with recruiters, network with founders"
+            />
           </div>
-        </div>
+       </div>
 
         <button
           class="run-btn"
@@ -214,7 +230,6 @@ const selectedScraper = ref("selenium")
 const keywordInput     = ref("")
 const keywords         = ref([])
 const matchMode        = ref("any")
-const userGoal         = ref("")
 const status           = ref("Ready")
 const statusClass      = ref("idle")
 const loading          = ref(false)
@@ -222,6 +237,7 @@ const inputFocused     = ref(false)
 const posts            = ref([])
 const statusFilter     = ref("all")
 const sortOrder        = ref("newest")
+const userGoal         = ref("")
 
 const successCount  = computed(() => posts.value.filter(p => p.status === "generated").length)
 const errorCount    = computed(() => posts.value.filter(p => p.status === "error").length)
@@ -326,9 +342,12 @@ async function runPipeline() {
   loading.value     = true
   status.value      = `Running ${selectedScraper.value} scraper...`
   statusClass.value = "running"
-  posts.value       = []
-
+  
   try {
+    // 1. Get current count before running
+    const prevHistory = await getHistory()
+    const prevCount = prevHistory.length
+
     const params = {
       scraper_type: selectedScraper.value,
       match_mode: matchMode.value,
@@ -363,7 +382,10 @@ async function runPipeline() {
           statusResponse.data.status
     }
 
+    
+    // 3. Fetch newly updated history
     const history = await getHistory()
+    const newCount = history.length - prevCount
     
     posts.value = history.map(post => ({
       ...post,
@@ -375,7 +397,9 @@ async function runPipeline() {
       isExpanded: false
     }))
 
-    status.value = `Done — ${posts.value.length} posts processed`
+    // 4. Show exact number of new posts
+    const newlyAddedText = newCount > 0 ? `Loaded ${newCount} new posts` : 'No new posts found'
+    status.value = `Done — ${newlyAddedText}`
     statusClass.value = "done"
 
   } catch (err) {
@@ -421,8 +445,8 @@ onMounted(() => {
 .main-card {
   width: 100%;
   max-width: 1160px;
-  background: #111111;
-  border: 1px solid #3a3a3a;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.08); 
   border-radius: 16px;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -446,7 +470,7 @@ onMounted(() => {
 .super-field label { display: block; font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 10px; }
 .super-field label .hint { text-transform: none; letter-spacing: 0; color: #555; font-weight: 400; }
 
-.super-input { display: flex; align-items: center; background: #0d0d0d; border: 1px solid #333; border-radius: 12px; padding: 6px 6px 6px 14px; transition: all 0.2s ease; min-height: 54px; }
+.super-input { display: flex; align-items: center; background: #080808; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 6px 6px 6px 14px; transition: all 0.2s ease; min-height: 54px; }
 .super-input.is-focused { border-color: #4caf7d; box-shadow: 0 0 0 3px rgba(76, 175, 125, 0.15); }
 
 .tags-and-input { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1; }
@@ -492,7 +516,7 @@ onMounted(() => {
 .stat-num { font-size: 1.8rem; font-weight: 700; color: #fff; line-height: 1; }
 .stat-label { font-size: 0.75rem; color: #777; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;}
 
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 36px; border-bottom: 1px solid #1e1e1e; background: rgba(17, 17, 17, 0.95); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 36px; border-bottom: 1px solid #1e1e1e; background: rgba(13, 13, 13, 0.95); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
 .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 16px;}
 .filter-select { appearance: none; background: #161616; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px 32px 8px 14px; font-size: 0.85rem; max-width: 150px; color: #ddd; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 12px center; background-size: 14px; }
 .select-all { font-size: 0.85rem; color: #aaa; font-weight: 500; }
@@ -503,17 +527,17 @@ onMounted(() => {
 .post-selected-btn { background: #0a192f; border: 1px solid #172a45; color: #64b5f6; }
 .post-selected-btn:hover { background: #112240; border-color: #64b5f6; box-shadow: 0 4px 16px rgba(100, 181, 246, 0.3);}
 
-/* Post cards */
-.cards-wrap { display: flex; flex-direction: column; gap: 32px; padding: 32px 36px 40px; background: #0a0a0a; }
+
+.cards-wrap { display: flex; flex-direction: column; gap: 32px; padding: 32px 36px 40px; background: #000000; }
 
 .post-card {
-  background: linear-gradient(180deg, #161616, #111111);
-  border: 1px solid #222;
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.08); 
   border-radius: 12px;
   overflow: hidden;
   transition: all .3s ease;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .post-card.selected { 
@@ -527,7 +551,7 @@ onMounted(() => {
 .post-card.posted { box-shadow: -3px 0 24px -4px rgba(77, 163, 255, 0.4); border-left: 1px solid #4da3ff; }
 .post-card.error, .post-card.failed { box-shadow: -3px 0 24px -4px rgba(224, 92, 92, 0.4); border-left: 1px solid #e05c5c; }
 
-.post-card-header { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 16px 24px; border-bottom: 1px solid #222; transition: background .2s ease; }
+.post-card-header { display: flex; justify-content: space-between; align-items: center; background: #161616; padding: 16px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background .2s ease; }
 .post-select { display: flex; align-items: center; gap: 14px; cursor: pointer; user-select: none;}
 
 .post-number { font-size: 1.15rem; color: #ffffff; font-weight: 800; letter-spacing: 0.02em;}
@@ -540,24 +564,19 @@ onMounted(() => {
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;}
 .section-title { display: block; font-size: 0.9rem; color: #999; text-transform: uppercase; letter-spacing: .08em; font-weight: 700;}
 
-/* Pink Header Title */
 .text-pink { color: #ec4899 !important; }
 
-/* Expand/Collapse Toggle Button */
 .expand-toggle-btn {
-  display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; background: #1a1a1a;
-  border: none; border-top: 1px solid #222; border-bottom: 1px solid #222; color: #aaa;
+  display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; background: #111111;
+  border: none; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); color: #aaa;
   padding: 12px 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s;
 }
-.expand-toggle-btn:hover { background: #222; color: #fff; }
+.expand-toggle-btn:hover { background: #1a1a1a; color: #fff; }
 
-/* Horizontal Top Glow for AI Workspace */
 .comment-workspace { 
-  background: #0a0a0a; 
+  background: #050505; 
   padding: 24px;
-  /* Top border only, no side border */
   border-top: 1px solid rgba(236, 72, 153, 0.4);
-  /* Inset shadow constrained to the top vertically */
   box-shadow: inset 0 20px 30px -20px rgba(236, 72, 153, 0.25);
 }
 
@@ -589,19 +608,26 @@ onMounted(() => {
 .linkedin-btn:hover { background: rgba(40, 103, 178, 0.2); border-color: #70b5f9;}
 
 .comment-workspace :deep(textarea),
-.comment-workspace :deep(input) { 
-  background: #000000; 
-  border: 1px solid #333; 
+.comment-workspace :deep(input),
+.comment-workspace :deep(.editor-content),
+.comment-workspace :deep([contenteditable]) { 
+  background: #050505 !important; 
+  border: 1px solid rgba(255, 255, 255, 0.1) !important; 
   color: #ffffff !important; 
-  border-radius: 8px; 
-  padding: 16px; 
-  font-size: 1.15rem; 
-  font-weight: 700; 
-  line-height: 1.6;
-  width: 100%;
+  border-radius: 8px !important; 
+  padding: 16px !important; 
+  font-size: 1.15rem !important; 
+  font-weight: 700 !important; 
+  line-height: 1.6 !important;
+  width: 100% !important;
 }
 .comment-workspace :deep(textarea:focus),
-.comment-workspace :deep(input:focus) { border-color: #ec4899; outline: none; box-shadow: 0 0 0 2px rgba(236,72,153,0.2);}
+.comment-workspace :deep(input:focus),
+.comment-workspace :deep([contenteditable]:focus) { 
+  border-color: #ec4899 !important; 
+  outline: none !important; 
+  box-shadow: 0 0 0 2px rgba(236,72,153,0.2) !important;
+}
 
 
 .comment-workspace :deep(button) {
@@ -613,7 +639,6 @@ onMounted(() => {
   transition: all 0.2s ease !important;
 }
 
-/* AI Assistant Button Override */
 .comment-workspace :deep(button:nth-of-type(1)) {
   background: rgba(168, 85, 247, 0.1) !important;
   border: 1px solid #a855f7 !important; 
@@ -624,7 +649,6 @@ onMounted(() => {
   box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3) !important;
 }
 
-/* Individual Post Comment Button Override (Dark Blue) */
 .comment-workspace :deep(button:nth-of-type(2)) {
   background: #0a192f !important;
   border: 1px solid #172a45 !important;
@@ -636,13 +660,27 @@ onMounted(() => {
   box-shadow: 0 4px 16px rgba(100, 181, 246, 0.3) !important;
 }
 
+.comment-workspace :deep(.edited),
+.comment-workspace :deep(span:contains("Edited")),
+.comment-workspace :deep(.badge.edited),
+.comment-workspace :deep(.editor-badge) {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  padding: 4px 12px !important;
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+}
+
 .empty { padding: 80px 36px; text-align: center; color: #666; font-size: 1rem; }
 
 @media (max-width: 760px) {
   .toolbar { flex-direction: column; align-items: flex-start; }
   .toolbar-left, .toolbar-right { width: 100%; flex-wrap: wrap; }
   .super-input { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .inline-match-mode { width: 100%; padding-top: 12px; border-top: 1px solid #333;}
+  .inline-match-mode { width: 100%; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);}
   .inline-match-mode .divider { display: none; }
 }
 </style>
