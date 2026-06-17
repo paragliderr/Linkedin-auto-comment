@@ -1,5 +1,7 @@
 import uuid
 import threading
+import pandas as pd
+from pathlib import Path
 
 from automation.scrape_posts import scrape_posts
 from auto_sel.auth.session import load_session
@@ -43,6 +45,44 @@ def _run_pipeline(job_id: str, scraper_type: str, keywords: list, match_mode: st
         if not posts:
             _jobs[job_id] = {"status": "done", "result": [], "error": "No posts matched keywords"}
             return
+        
+        
+        CSV_PATH = Path("data/linkedin_posts.csv")
+        existing_urls = set()
+        
+        if CSV_PATH.exists():
+            df = pd.read_csv(CSV_PATH)
+            
+            if "post_url" in df.columns:
+                  existing_urls = set(
+                     df["post_url"]
+                     .dropna()
+                     .astype(str)
+                     .str.strip()
+                  )
+        original_count = len(posts)          
+        posts = [
+             post
+             for post in posts
+             if post.get("post_url", "").strip()
+              not in existing_urls
+        ]
+        print(
+             f"Skipped {original_count - len(posts)} duplicate posts"
+        )
+        
+        print(
+             f"New posts after duplicate check: {len(posts)}"
+        )
+        if not posts:
+            _jobs[job_id] = {
+                 "status": "done",
+                 "result": [],
+                 "error": "All posts already exist"
+            }
+            
+            return
+       
 
         final_posts = []
         next_id = get_next_id()

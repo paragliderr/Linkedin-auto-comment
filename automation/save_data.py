@@ -25,6 +25,18 @@ def save_posts(posts):
             [old_df, new_df],
             ignore_index=True
         )
+        if "post_url" in df.columns:
+            
+            before = len(df)
+            
+            df = df.drop_duplicates(
+                  subset=["post_url"],
+                   keep="first"
+            )
+            
+            print(
+                 f"Removed {before - len(df)} duplicates"
+            )
 
     else:
 

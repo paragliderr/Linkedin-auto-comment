@@ -357,11 +357,28 @@ async function runPipeline() {
         : kw
     })
 
-    await api.post(
+    const response = await api.post(
       "/comments/run",
       null,
       { params }
     )
+
+    const jobId = response.data
+    let jobStatus = "running"
+
+    while (jobStatus === "running") {
+      await new Promise(
+       resolve => setTimeout(resolve, 2000)
+     )
+
+      const statusResponse =
+        await api.get(
+           `/comments/run/status/${jobId}`
+        )
+
+      jobStatus =
+          statusResponse.data.status
+    }
 
     const history = await getHistory()
     
