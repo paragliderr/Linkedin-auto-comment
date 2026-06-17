@@ -13,7 +13,8 @@ client = OpenAI(
     base_url=BASE_URL
 )
 
-def generate_comment(post):
+def generate_comment(post, goal=""):
+
     response = client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
@@ -23,8 +24,19 @@ def generate_comment(post):
             },
             {
                 "role": "user",
-                "content": f"LinkedIn Post:\n{post}"
+                "content":
+                f"""
+Goal:
+{goal}
+
+LinkedIn Post:
+{post}
+"""
             }
         ]
     )
-    return response.choices[0].message.content
+
+    comment = response.choices[0].message.content.strip()
+    comment = comment.strip('"').strip("'")
+    
+    return comment

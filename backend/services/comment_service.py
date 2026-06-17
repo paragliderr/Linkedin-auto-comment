@@ -1,13 +1,19 @@
 from Ai_services.chatbot import generate_comment
 from Ai_services.comment_assistant import improve_comment
 
-def generate_comment_service(post_text: str) -> str:
+def generate_comment_service(
+    post_text: str,
+    goal: str = ""
+) -> str:
     """
     Uses the AI service to generate a LinkedIn comment.
     """
 
-    return generate_comment(post_text)
-
+    return generate_comment(
+        post_text,
+        goal
+    )
+    
 def improve_comment_service(
     comment: str,
     instruction: str

@@ -37,6 +37,16 @@
           </div>
         </div>
 
+       <div class="field">
+         <label>Your Goal</label>
+
+         <input
+           v-model="userGoal"
+           placeholder="e.g. Get internships, network with recruiters, build AI presence"
+          />
+        </div>
+
+
         <div class="field">
           <label>Match Mode</label>
           <div class="toggle">
@@ -192,6 +202,7 @@ const selectedScraper = ref("selenium")
 const keywordInput     = ref("")
 const keywords         = ref([])
 const matchMode        = ref("any")
+const userGoal         = ref("")
 const status           = ref("Ready")
 const statusClass      = ref("idle")
 const loading          = ref(false)
@@ -338,6 +349,7 @@ async function runPipeline() {
     const params = {
       scraper_type: selectedScraper.value,
       match_mode: matchMode.value,
+      goal: userGoal.value
     }
     keywords.value.forEach(kw => {
       params["keywords"] = params["keywords"]

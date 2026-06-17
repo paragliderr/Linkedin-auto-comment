@@ -16,7 +16,7 @@ def get_job(job_id: str):
     return _jobs.get(job_id)
 
 
-def _run_pipeline(job_id: str, scraper_type: str, keywords: list, match_mode: str):
+def _run_pipeline(job_id: str, scraper_type: str, keywords: list, match_mode: str, goal: str):
     _jobs[job_id] = {"status": "running", "result": None, "error": None}
 
     try:
@@ -50,7 +50,7 @@ def _run_pipeline(job_id: str, scraper_type: str, keywords: list, match_mode: st
         for i, post in enumerate(posts):
             print(f"Generating comment for post {i + 1}/{len(posts)}")
             try:
-                comment = generate_comment(post["content"])
+                comment = generate_comment(post["content"], goal)
                 status = "generated"
             except Exception as e:
                 print(f"Error on post {i + 1}: {e}")
@@ -75,11 +75,11 @@ def _run_pipeline(job_id: str, scraper_type: str, keywords: list, match_mode: st
         _jobs[job_id] = {"status": "error", "result": None, "error": str(e)}
 
 
-def run(scraper_type="selenium", keywords=None, match_mode="any") -> str:
+def run(scraper_type="selenium", keywords=None, match_mode="any", goal="") -> str:
     job_id = str(uuid.uuid4())
     threading.Thread(
         target=_run_pipeline,
-        args=(job_id, scraper_type, keywords, match_mode),
+        args=(job_id, scraper_type, keywords, match_mode, goal),
         daemon=True
     ).start()
     return job_id

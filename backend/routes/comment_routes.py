@@ -70,7 +70,7 @@ def delete_post(post_text: str = Query(...)):
 
 @router.post("/generate", response_model=CommentResponse)
 def generate_comment(request: CommentRequest):
-    return CommentResponse(comment=generate_comment_service(request.post_text))
+    return CommentResponse(comment=generate_comment_service(request.post_text, request.goal))
 
 
 @router.post("/improve", response_model=ImproveCommentResponse)
@@ -82,9 +82,10 @@ def improve_comment_route(request: ImproveCommentRequest):
 def run_pipeline(
     scraper_type: str = "selenium",
     keywords: Optional[List[str]] = Query(default=[]),
-    match_mode: str = Query(default="any")
+    match_mode: str = Query(default="any"),
+    goal: str = Query(default="")
 ):
-    return run(scraper_type=scraper_type, keywords=keywords, match_mode=match_mode)
+    return run(scraper_type=scraper_type, keywords=keywords, match_mode=match_mode, goal=goal)
 
 @router.get("/run/status/{job_id}")
 def get_run_status(job_id: str):
