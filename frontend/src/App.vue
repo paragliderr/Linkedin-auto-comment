@@ -661,7 +661,6 @@ onMounted(() => {
 }
 
 .comment-workspace :deep(.edited),
-.comment-workspace :deep(span:contains("Edited")),
 .comment-workspace :deep(.badge.edited),
 .comment-workspace :deep(.editor-badge) {
   background: rgba(245, 158, 11, 0.15) !important;
