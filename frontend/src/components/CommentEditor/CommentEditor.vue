@@ -9,7 +9,9 @@
            post.editing = true
           "
         >
+         <div class="comment-display">
           {{ post.edited_comment }}
+         </div>
       </div>
 
       <span
@@ -294,13 +296,43 @@ async function applySuggestion() {
 <style scoped>
 
 .comment-text {
+
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
+
+  padding: 18px;
+
+  border-radius: 10px;
+
+  background: #111111;
+
+  border: 1px solid #2c2c2c;
+
+  transition: all .2s ease;
+
 }
 
-.comment-text:hover {
-  background: rgba(255,255,255,0.05);
+.comment-text:hover{
+
+  background:#171717;
+
+  border-color:#444;
+
+}
+
+.comment-display{
+
+  color:#f5f5f5;
+
+  font-size:16px;
+
+  line-height:1.8;
+
+  font-weight:400;
+
+  white-space:pre-wrap;
+
+  word-break:break-word;
+
 }
 
 </style>
