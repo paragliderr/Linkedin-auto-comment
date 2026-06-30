@@ -15,4 +15,11 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    proxy: {
+      '/auth': 'http://localhost:8000',
+      '/comments': 'http://localhost:8000',
+      '/history': 'http://localhost:8000',
+    },
+  },
 })

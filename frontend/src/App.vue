@@ -10,16 +10,66 @@
 
       <div class="controls">
 
-        <div class="scraper-pill-container">
-          <div class="scraper-pill">
-            <button
-              :class="{ active: selectedScraper === 'playwright' }"
-              @click="selectedScraper = 'playwright'"
-            >Playwright</button>
-            <button
-              :class="{ active: selectedScraper === 'selenium' }"
-              @click="selectedScraper = 'selenium'"
-            >Selenium</button>
+        <div class="toggles-group">
+          <div class="scraper-pill-container">
+            <div class="scraper-pill">
+              <button
+                :class="{ active: selectedScraper === 'playwright' }"
+                @click="selectedScraper = 'playwright'"
+              >Playwright</button>
+              <button
+                :class="{ active: selectedScraper === 'selenium' }"
+                @click="selectedScraper = 'selenium'"
+              >Selenium</button>
+            </div>
+          </div>
+
+          <!-- SESSION STEP: now an explicit, clickable "step" rather than a passive toggle -->
+          <div class="session-toggle-container">
+            <div class="session-step-label">Step 1 — Choose a session</div>
+            <div class="session-toggle">
+              <button
+                :class="{ active: sessionType === 'current', disabled: !sessionExists }"
+                @click="selectCurrentSession"
+                title="Use Current Session"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span class="toggle-text">Current Session</span>
+              </button>
+              <button
+                :class="{ active: sessionType === 'new' }"
+                @click="startNewSession"
+                title="Start New Session — opens a browser window to log in"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="20" y1="8" x2="20" y2="14"></line>
+                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+                <span class="toggle-text">New Session</span>
+              </button>
+            </div>
+
+            <!-- Status / guidance messages for the session step -->
+            <div class="session-hint checking" v-if="checkingSession">
+              Checking for a saved session...
+            </div>
+            <div class="session-hint warning" v-else-if="sessionType === 'current' && !sessionExists">
+              ⚠ No current session found. Start a <strong>New Session</strong> first to log in and save one.
+            </div>
+            <div class="session-hint success" v-else-if="sessionType === 'current' && sessionExists">
+              ✓ Saved session found — ready to generate comments.
+            </div>
+            <div class="session-hint info" v-else-if="sessionType === 'new' && startingSession">
+              A browser window will open — please log in to LinkedIn there. Waiting for login...
+            </div>
+            <div class="session-hint success" v-else-if="sessionType === 'new' && sessionExists && !startingSession">
+              ✓ New session saved — ready to generate comments.
+            </div>
           </div>
         </div>
 
@@ -81,7 +131,8 @@
 
         <button
           class="run-btn"
-          :disabled="loading"
+          :disabled="loading || !canRunPipeline"
+          :title="!canRunPipeline ? 'Choose or create a session first' : ''"
           @click="runPipeline"
         >
           {{ loading ? "Generating Comments..." : "Generate Comments" }}
@@ -227,6 +278,7 @@ import CommentEditor from "./components/CommentEditor/CommentEditor.vue"
 import { getHistory } from "./services/historyService"
 
 const selectedScraper = ref("selenium")
+const sessionType      = ref("current") 
 const keywordInput     = ref("")
 const keywords         = ref([])
 const matchMode        = ref("any")
@@ -239,11 +291,24 @@ const statusFilter     = ref("all")
 const sortOrder        = ref("newest")
 const userGoal         = ref("")
 
+// ---- Session state ----
+const sessionExists   = ref(false)   // does a saved session file exist on the backend?
+const checkingSession = ref(false)   // probing /auth/check-session
+const startingSession = ref(false)   // waiting on a fresh login flow to complete
+
 const successCount  = computed(() => posts.value.filter(p => p.status === "generated").length)
 const errorCount    = computed(() => posts.value.filter(p => p.status === "error").length)
 const selectedCount = computed(() => posts.value.filter(p => p.selected).length)
 const allSelected   = computed(() => posts.value.length > 0 && posts.value.every(p => p.selected))
 const someSelected  = computed(() => posts.value.some(p => p.selected))
+
+// Pipeline can only run once a valid session is confirmed for the chosen mode
+const canRunPipeline = computed(() => {
+  if (checkingSession.value || startingSession.value) return false
+  if (sessionType.value === "current") return sessionExists.value
+  if (sessionType.value === "new") return sessionExists.value // becomes true once startNewSession finishes
+  return false
+})
 
 const filteredPosts = computed(() => {
   let result = [...posts.value]
@@ -336,20 +401,97 @@ async function postSelected() {
   alert("Posting completed")
 }
 
+// ---- Session step logic ----
+
+// Probe the backend to see if a saved session file already exists.
+async function checkSession() {
+  checkingSession.value = true
+  try {
+    const res = await api.get("/auth/check-session")
+    sessionExists.value = !!res.data?.exists
+  } catch (err) {
+    console.error("Failed to check session:", err)
+    sessionExists.value = false
+  } finally {
+    checkingSession.value = false
+  }
+}
+
+// User clicks "Current Session" — just select it and re-confirm a session exists.
+function selectCurrentSession() {
+  sessionType.value = "current"
+  checkSession()
+}
+
+// User clicks "New Session" — this is an action button, not just a toggle.
+// It tells the backend to open a fresh browser window so the user can log in,
+// then waits until the session file has actually been saved.
+async function startNewSession() {
+  sessionType.value = "new"
+  startingSession.value = true
+  sessionExists.value = false
+  status.value = "Opening browser — please log in to LinkedIn..."
+  statusClass.value = "running"
+
+  try {
+    // Kicks off the backend script that opens a browser (Playwright/Selenium)
+    // and waits for the user to log in, then writes the session file.
+    await api.post("/auth/login")
+
+    // Poll until the backend confirms the session file was written.
+    let confirmed = false
+    for (let i = 0; i < 60; i++) { // ~5 minutes max (60 * 5s)
+      await new Promise(resolve => setTimeout(resolve, 5000))
+      const res = await api.get("/auth/check-session")
+      if (res.data?.exists) {
+        confirmed = true
+        break
+      }
+    }
+
+    if (confirmed) {
+      sessionExists.value = true
+      status.value = "New session saved — ready to generate comments"
+      statusClass.value = "done"
+    } else {
+      status.value = "Timed out waiting for login — please try New Session again"
+      statusClass.value = "error"
+    }
+  } catch (err) {
+    console.error("Failed to start new session:", err)
+    status.value = "Could not start a new session — check backend/console"
+    statusClass.value = "error"
+  } finally {
+    startingSession.value = false
+  }
+}
+
 async function runPipeline() {
   if (keywordInput.value.trim()) addKeyword()
+
+  // Guard: don't let the pipeline run without a valid session — show a clear
+  // message instead of letting the backend call fail silently.
+  if (!canRunPipeline.value) {
+    if (sessionType.value === "current" && !sessionExists.value) {
+      status.value = "No current session exists — start a New Session first"
+    } else {
+      status.value = "Please finish setting up a session before generating comments"
+    }
+    statusClass.value = "error"
+    return
+  }
 
   loading.value     = true
   status.value      = `Running ${selectedScraper.value} scraper...`
   statusClass.value = "running"
   
   try {
-    // 1. Get current count before running
     const prevHistory = await getHistory()
     const prevCount = prevHistory.length
 
     const params = {
       scraper_type: selectedScraper.value,
+      session_type: sessionType.value,
       match_mode: matchMode.value,
       goal: userGoal.value
     }
@@ -359,31 +501,16 @@ async function runPipeline() {
         : kw
     })
 
-    const response = await api.post(
-      "/comments/run",
-      null,
-      { params }
-    )
-
+    const response = await api.post("/comments/run", null, { params })
     const jobId = response.data
     let jobStatus = "running"
 
     while (jobStatus === "running") {
-      await new Promise(
-       resolve => setTimeout(resolve, 2000)
-     )
-
-      const statusResponse =
-        await api.get(
-           `/comments/run/status/${jobId}`
-        )
-
-      jobStatus =
-          statusResponse.data.status
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const statusResponse = await api.get(`/comments/run/status/${jobId}`)
+      jobStatus = statusResponse.data.status
     }
 
-    
-    // 3. Fetch newly updated history
     const history = await getHistory()
     const newCount = history.length - prevCount
     
@@ -397,7 +524,6 @@ async function runPipeline() {
       isExpanded: false
     }))
 
-    // 4. Show exact number of new posts
     const newlyAddedText = newCount > 0 ? `Loaded ${newCount} new posts` : 'No new posts found'
     status.value = `Done — ${newlyAddedText}`
     statusClass.value = "done"
@@ -426,6 +552,7 @@ async function loadComments() {
 
 onMounted(() => {
   loadComments()
+  checkSession()
 })
 </script>
 
@@ -461,10 +588,85 @@ onMounted(() => {
 
 .controls { padding: 36px 36px; display: flex; flex-direction: column; align-items: center; gap: 32px; border-bottom: 1px solid #1e1e1e; }
 
+.toggles-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
 .scraper-pill-container { display: flex; justify-content: center; width: 100%; }
 .scraper-pill { display: inline-flex; background: #080808; border: 1px solid #2a2a2a; border-radius: 40px; padding: 4px; }
 .scraper-pill button { background: transparent; border: none; color: #777; font-size: 0.85rem; font-weight: 600; padding: 10px 24px; border-radius: 30px; cursor: pointer; transition: all 0.2s ease; }
 .scraper-pill button.active { background: #262626; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+
+/* Expandable Session Toggle Styling */
+.session-toggle-container { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+
+.session-step-label {
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 700;
+}
+
+.session-toggle { 
+  display: inline-flex; 
+  background: #111111; 
+  border: 1px solid #222; 
+  border-radius: 40px; 
+  padding: 4px; 
+  gap: 4px;
+}
+.session-toggle button { 
+  display: flex; 
+  align-items: center; 
+  background: transparent; 
+  border: none; 
+  color: #666; 
+  font-size: 0.85rem; 
+  border-radius: 30px; 
+  padding: 8px 12px; 
+  cursor: pointer; 
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+.session-toggle button.active { 
+  background: #e0e0e0; 
+  color: #111; 
+  box-shadow: 0 4px 12px rgba(255,255,255,0.1); 
+}
+.session-toggle button.disabled {
+  opacity: 0.5;
+}
+.session-toggle .toggle-text { 
+  max-width: 0; 
+  opacity: 0; 
+  overflow: hidden; 
+  white-space: nowrap; 
+  font-weight: 700; 
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+  margin-left: 0; 
+}
+.session-toggle button.active .toggle-text { 
+  max-width: 160px; 
+  opacity: 1; 
+  margin-left: 8px; 
+}
+
+.session-hint {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 480px;
+}
+.session-hint.warning { background: rgba(240, 192, 64, 0.1); color: #f0c040; border: 1px solid rgba(240, 192, 64, 0.3); }
+.session-hint.success { background: rgba(76, 175, 125, 0.1); color: #4caf7d; border: 1px solid rgba(76, 175, 125, 0.3); }
+.session-hint.info { background: rgba(100, 181, 246, 0.1); color: #64b5f6; border: 1px solid rgba(100, 181, 246, 0.3); }
+.session-hint.checking { color: #777; }
 
 .super-field { width: 100%; max-width: 720px; text-align: center; }
 .super-field label { display: block; font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 10px; }
@@ -492,7 +694,6 @@ onMounted(() => {
 .run-btn:active { transform: translateY(0); }
 .run-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none;}
 
-/* Custom Checkbox UI */
 .custom-checkbox-wrapper { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
 .custom-checkbox-wrapper input { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
 .checkmark { display: inline-block; width: 20px; height: 20px; background-color: #1a1a1a; border: 2px solid #444; border-radius: 6px; position: relative; transition: all 0.2s ease; }
