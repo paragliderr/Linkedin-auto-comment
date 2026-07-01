@@ -1,10 +1,37 @@
 import os
 import pickle
+import time
 from playwright.sync_api import sync_playwright
 from auto_sel.utils.driver import get_driver
 
 COOKIE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.pkl")
-STATE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "automation", "auth", "state.json")
+STATE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "automation", "auth", "state.json"
+)
+
+LOGIN_TIMEOUT = 300  # seconds
+
+from selenium.common.exceptions import WebDriverException
+
+def wait_for_login(driver, timeout=LOGIN_TIMEOUT):
+    """Poll the browser URL instead of blocking on stdin — this must be
+    non-interactive since the script is launched headless from the backend.
+    Guards against Safari's current_url intermittently returning None,
+    and against the user closing the browser window mid-wait."""
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            url = driver.current_url
+        except WebDriverException:
+            print("✗ Browser window was closed before login completed.")
+            return False
+
+        if url and "linkedin.com/feed" in url:
+            return True
+
+        time.sleep(1.5)
+    return False
 
 def unified_login():
     print("=" * 60)
@@ -15,8 +42,12 @@ def unified_login():
     driver = get_driver()
     try:
         driver.get("https://www.linkedin.com/login")
-        input("\nLog in to LinkedIn in the browser window.\nOnce you're on the feed, press Enter here...")
-        
+        print("Waiting for login in the opened browser window...")
+
+        if not wait_for_login(driver):
+            print("✗ Login timed out — no feed detected within 5 minutes.")
+            return
+
         with open(COOKIE_PATH, "wb") as f:
             pickle.dump(driver.get_cookies(), f)
         print("✓ Selenium cookies saved")
@@ -26,16 +57,14 @@ def unified_login():
     finally:
         driver.quit()
 
-    # Convert Selenium cookies to Playwright format 
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
         page.goto("https://www.linkedin.com")
 
-        # Add cookies from Selenium session
         for cookie in cookies:
             try:
                 pw_cookie = {
@@ -56,7 +85,7 @@ def unified_login():
         browser.close()
 
     print("✓ Playwright state saved")
-    print("\n Login complete! Both scrapers are ready to use.")
+    print("Login complete! Both scrapers are ready to use.")
 
 
 if __name__ == "__main__":

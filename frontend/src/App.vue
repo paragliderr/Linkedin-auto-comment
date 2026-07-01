@@ -24,14 +24,12 @@
             </div>
           </div>
 
-          <!-- SESSION STEP: now an explicit, clickable "step" rather than a passive toggle -->
           <div class="session-toggle-container">
-            <div class="session-step-label">Step 1 — Choose a session</div>
             <div class="session-toggle">
               <button
                 :class="{ active: sessionType === 'current', disabled: !sessionExists }"
                 @click="selectCurrentSession"
-                title="Use Current Session"
+                title="Use saved session"
               >
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -42,7 +40,7 @@
               <button
                 :class="{ active: sessionType === 'new' }"
                 @click="startNewSession"
-                title="Start New Session — opens a browser window to log in"
+                title="Open a browser to log in"
               >
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -54,43 +52,26 @@
               </button>
             </div>
 
-            <!-- Status / guidance messages for the session step -->
-            <div class="session-hint checking" v-if="checkingSession">
-              Checking for a saved session...
-            </div>
-            <div class="session-hint warning" v-else-if="sessionType === 'current' && !sessionExists">
-              ⚠ No current session found. Start a <strong>New Session</strong> first to log in and save one.
-            </div>
-            <div class="session-hint success" v-else-if="sessionType === 'current' && sessionExists">
-              ✓ Saved session found — ready to generate comments.
-            </div>
-            <div class="session-hint info" v-else-if="sessionType === 'new' && startingSession">
-              A browser window will open — please log in to LinkedIn there. Waiting for login...
-            </div>
-            <div class="session-hint success" v-else-if="sessionType === 'new' && sessionExists && !startingSession">
-              ✓ New session saved — ready to generate comments.
+            <div class="session-hint" :class="sessionHintClass" v-if="sessionHintText">
+              {{ sessionHintText }}
             </div>
           </div>
         </div>
 
         <div class="field super-field">
-          <label>Target Keywords <span class="hint">(Press Enter to add tags)</span></label>
-          
+          <label>Target Keywords <span class="hint">(Enter to add)</span></label>
+
           <div class="super-input" :class="{ 'is-focused': inputFocused }">
-            
+
             <div class="tags-and-input">
-              <span
-                class="tag"
-                v-for="(kw, i) in keywords"
-                :key="i"
-              >
+              <span class="tag" v-for="(kw, i) in keywords" :key="i">
                 {{ kw }}
                 <button @click="removeKeyword(i)">✕</button>
               </span>
-              
+
               <input
                 v-model="keywordInput"
-                placeholder="Type keywords (e.g. AI, hiring)..."
+                placeholder="AI, hiring..."
                 @keyup.enter="addKeyword"
                 @focus="inputFocused = true"
                 @blur="inputFocused = false"
@@ -100,42 +81,28 @@
             <div class="inline-match-mode" v-if="keywords.length > 0 || keywordInput.length > 0">
               <div class="divider"></div>
               <div class="mini-toggle">
-                <button 
-                  :class="{ active: matchMode === 'any' }" 
-                  @click="matchMode = 'any'"
-                >Any keyword</button>
-                <button 
-                  :class="{ active: matchMode === 'all' }" 
-                  @click="matchMode = 'all'"
-                >All keywords</button>
+                <button :class="{ active: matchMode === 'any' }" @click="matchMode = 'any'">Any</button>
+                <button :class="{ active: matchMode === 'all' }" @click="matchMode = 'all'">All</button>
               </div>
             </div>
 
           </div>
         </div>
-        <div class="field super-field">
-          <label>
-            Your Goal
-            <span class="hint">
-             (helps AI generate personalized comments)
-           </span>
-          </label>
 
+        <div class="field super-field">
+          <label>Your Goal <span class="hint">(personalizes comments)</span></label>
           <div class="super-input">
-            <input
-             v-model="userGoal"
-             placeholder="e.g. Get internships, connect with recruiters, network with founders"
-            />
+            <input v-model="userGoal" placeholder="Get internships, connect with recruiters..." />
           </div>
-       </div>
+        </div>
 
         <button
           class="run-btn"
           :disabled="loading || !canRunPipeline"
-          :title="!canRunPipeline ? 'Choose or create a session first' : ''"
+          :title="!canRunPipeline ? 'Set up a session first' : ''"
           @click="runPipeline"
         >
-          {{ loading ? "Generating Comments..." : "Generate Comments" }}
+          {{ loading ? "Generating…" : "Generate Comments" }}
         </button>
       </div>
 
@@ -146,7 +113,7 @@
       <div class="stats" v-if="posts.length">
         <div class="stat">
           <span class="stat-num">{{ posts.length }}</span>
-          <span class="stat-label">Posts matched</span>
+          <span class="stat-label">Matched</span>
         </div>
         <div class="stat">
           <span class="stat-num">{{ successCount }}</span>
@@ -178,7 +145,7 @@
 
         <div class="toolbar-right">
           <select v-model="statusFilter" class="filter-select">
-            <option value="all">All Statuses</option>
+            <option value="all">All</option>
             <option value="generated">Generated</option>
             <option value="edited">Edited</option>
             <option value="posted">Posted</option>
@@ -186,25 +153,17 @@
           </select>
 
           <select v-model="sortOrder" class="filter-select">
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
           </select>
 
-          <button
-            class="bulk-delete-btn"
-            v-if="selectedCount"
-            @click="removeSelected"
-          >
+          <button class="bulk-delete-btn" v-if="selectedCount" @click="removeSelected">
             Remove ({{ selectedCount }})
           </button>
 
-          <button
-           class="post-selected-btn"
-           v-if="selectedCount"
-           @click="postSelected"
-         >
+          <button class="post-selected-btn" v-if="selectedCount" @click="postSelected">
             Post Selected ({{ selectedCount }})
-         </button>
+          </button>
         </div>
       </div>
 
@@ -215,30 +174,20 @@
           :key="i"
           :class="[post.status, { selected: post.selected }]"
         >
-          
           <div class="post-card-header">
             <label class="custom-checkbox-wrapper post-select">
-              <input
-                type="checkbox"
-                v-model="post.selected"
-              />
+              <input type="checkbox" v-model="post.selected" />
               <span class="checkmark"></span>
               <span class="post-number">Post #{{ sortOrder === 'newest' ? posts.length - i : i + 1 }}</span>
             </label>
-            <button class="delete-btn" @click="removePost(i)" title="Remove this post">✕</button>
+            <button class="delete-btn" @click="removePost(i)" title="Remove">✕</button>
           </div>
 
           <div class="post-card-body">
-
             <div class="post-col">
               <div class="section-header">
                 <span class="section-title">Original Post</span>
-                <a
-                  v-if="post.post_url"
-                  :href="post.post_url"
-                  target="_blank"
-                  class="view-post-btn linkedin-btn"
-                >
+                <a v-if="post.post_url" :href="post.post_url" target="_blank" class="view-post-btn linkedin-btn">
                   LinkedIn ↗
                 </a>
               </div>
@@ -256,9 +205,7 @@
               </div>
               <CommentEditor :post="post" />
             </div>
-
           </div>
-
         </div>
       </div>
 
@@ -278,23 +225,22 @@ import CommentEditor from "./components/CommentEditor/CommentEditor.vue"
 import { getHistory } from "./services/historyService"
 
 const selectedScraper = ref("selenium")
-const sessionType      = ref("current") 
+const sessionType      = ref("current")
 const keywordInput     = ref("")
 const keywords         = ref([])
 const matchMode        = ref("any")
 const status           = ref("Ready")
 const statusClass      = ref("idle")
 const loading          = ref(false)
-const inputFocused     = ref(false) 
+const inputFocused     = ref(false)
 const posts            = ref([])
 const statusFilter     = ref("all")
 const sortOrder        = ref("newest")
 const userGoal         = ref("")
 
-// ---- Session state ----
-const sessionExists   = ref(false)   // does a saved session file exist on the backend?
-const checkingSession = ref(false)   // probing /auth/check-session
-const startingSession = ref(false)   // waiting on a fresh login flow to complete
+const sessionExists   = ref(false)
+const checkingSession = ref(false)
+const startingSession = ref(false)
 
 const successCount  = computed(() => posts.value.filter(p => p.status === "generated").length)
 const errorCount    = computed(() => posts.value.filter(p => p.status === "error").length)
@@ -302,12 +248,25 @@ const selectedCount = computed(() => posts.value.filter(p => p.selected).length)
 const allSelected   = computed(() => posts.value.length > 0 && posts.value.every(p => p.selected))
 const someSelected  = computed(() => posts.value.some(p => p.selected))
 
-// Pipeline can only run once a valid session is confirmed for the chosen mode
 const canRunPipeline = computed(() => {
   if (checkingSession.value || startingSession.value) return false
-  if (sessionType.value === "current") return sessionExists.value
-  if (sessionType.value === "new") return sessionExists.value // becomes true once startNewSession finishes
-  return false
+  return sessionExists.value
+})
+
+// Single source of truth for the session hint — replaces the old 5-branch template block
+const sessionHintText = computed(() => {
+  if (checkingSession.value) return "Checking session…"
+  if (sessionType.value === "new" && startingSession.value) return "Log in in the browser window that opened…"
+  if (sessionExists.value) return "✓ Session ready"
+  if (sessionType.value === "current") return "No saved session — click New Session"
+  return ""
+})
+
+const sessionHintClass = computed(() => {
+  if (checkingSession.value) return "checking"
+  if (sessionType.value === "new" && startingSession.value) return "info"
+  if (sessionExists.value) return "success"
+  return "warning"
 })
 
 const filteredPosts = computed(() => {
@@ -315,16 +274,13 @@ const filteredPosts = computed(() => {
   if (statusFilter.value !== "all") {
     result = result.filter(post => post.status === statusFilter.value)
   }
-  if (sortOrder.value === "newest") {
-    result.reverse()
-  }
+  if (sortOrder.value === "newest") result.reverse()
   return result
 })
 
 function addKeyword() {
   const raw = keywordInput.value.trim()
   if (!raw) return
-
   raw.split(",")
     .map(k => k.trim())
     .filter(k => k && !keywords.value.includes(k))
@@ -344,27 +300,19 @@ function toggleSelectAll() {
 async function removePost(i) {
   const post = filteredPosts.value[i]
   const originalIndex = posts.value.findIndex(p => p === post)
-  
   try {
-    await api.delete("/comments/post", {
-      params: { post_text: post.post_text }
-    })
+    await api.delete("/comments/post", { params: { post_text: post.post_text } })
   } catch (err) {
     console.error("Failed to delete from CSV:", err)
   }
-  
-  if (originalIndex !== -1) {
-    posts.value.splice(originalIndex, 1)
-  }
+  if (originalIndex !== -1) posts.value.splice(originalIndex, 1)
 }
 
 async function removeSelected() {
   const toRemove = posts.value.filter(p => p.selected)
   for (const post of toRemove) {
     try {
-      await api.delete("/comments/post", {
-        params: { post_text: post.post_text }
-      })
+      await api.delete("/comments/post", { params: { post_text: post.post_text } })
     } catch (err) {
       console.error("Failed to delete from CSV:", err)
     }
@@ -375,10 +323,7 @@ async function removeSelected() {
 async function postSelected() {
   const selectedPosts = posts.value.filter(post => post.selected)
   if (!selectedPosts.length) return
-
-  if (!confirm(`Post ${selectedPosts.length} selected comments to LinkedIn?`)) {
-    return
-  }
+  if (!confirm(`Post ${selectedPosts.length} selected comments to LinkedIn?`)) return
 
   for (const post of selectedPosts) {
     try {
@@ -386,24 +331,17 @@ async function postSelected() {
         post_url: post.post_url,
         comment_text: post.edited_comment
       })
-
-      if (response.data.success) {
-        post.posted = true
-        post.status = "posted"
-      } else {
-        post.status = "failed"
-      }
+      post.status = response.data.success ? "posted" : "failed"
+      if (response.data.success) post.posted = true
     } catch (err) {
       console.error(err)
       post.status = "failed"
     }
   }
-  alert("Posting completed")
+  status.value = "Posting completed"
+  statusClass.value = "done"
 }
 
-// ---- Session step logic ----
-
-// Probe the backend to see if a saved session file already exists.
 async function checkSession() {
   checkingSession.value = true
   try {
@@ -417,30 +355,23 @@ async function checkSession() {
   }
 }
 
-// User clicks "Current Session" — just select it and re-confirm a session exists.
 function selectCurrentSession() {
   sessionType.value = "current"
   checkSession()
 }
 
-// User clicks "New Session" — this is an action button, not just a toggle.
-// It tells the backend to open a fresh browser window so the user can log in,
-// then waits until the session file has actually been saved.
 async function startNewSession() {
   sessionType.value = "new"
   startingSession.value = true
   sessionExists.value = false
-  status.value = "Opening browser — please log in to LinkedIn..."
+  status.value = "Waiting for LinkedIn login…"
   statusClass.value = "running"
 
   try {
-    // Kicks off the backend script that opens a browser (Playwright/Selenium)
-    // and waits for the user to log in, then writes the session file.
     await api.post("/auth/login")
 
-    // Poll until the backend confirms the session file was written.
     let confirmed = false
-    for (let i = 0; i < 60; i++) { // ~5 minutes max (60 * 5s)
+    for (let i = 0; i < 60; i++) {
       await new Promise(resolve => setTimeout(resolve, 5000))
       const res = await api.get("/auth/check-session")
       if (res.data?.exists) {
@@ -451,15 +382,15 @@ async function startNewSession() {
 
     if (confirmed) {
       sessionExists.value = true
-      status.value = "New session saved — ready to generate comments"
+      status.value = "Session saved"
       statusClass.value = "done"
     } else {
-      status.value = "Timed out waiting for login — please try New Session again"
+      status.value = "Login timed out — try again"
       statusClass.value = "error"
     }
   } catch (err) {
     console.error("Failed to start new session:", err)
-    status.value = "Could not start a new session — check backend/console"
+    status.value = "Couldn't open login — check backend"
     statusClass.value = "error"
   } finally {
     startingSession.value = false
@@ -469,22 +400,16 @@ async function startNewSession() {
 async function runPipeline() {
   if (keywordInput.value.trim()) addKeyword()
 
-  // Guard: don't let the pipeline run without a valid session — show a clear
-  // message instead of letting the backend call fail silently.
   if (!canRunPipeline.value) {
-    if (sessionType.value === "current" && !sessionExists.value) {
-      status.value = "No current session exists — start a New Session first"
-    } else {
-      status.value = "Please finish setting up a session before generating comments"
-    }
+    status.value = "Set up a session first"
     statusClass.value = "error"
     return
   }
 
   loading.value     = true
-  status.value      = `Running ${selectedScraper.value} scraper...`
+  status.value      = `Running ${selectedScraper.value}…`
   statusClass.value = "running"
-  
+
   try {
     const prevHistory = await getHistory()
     const prevCount = prevHistory.length
@@ -513,7 +438,7 @@ async function runPipeline() {
 
     const history = await getHistory()
     const newCount = history.length - prevCount
-    
+
     posts.value = history.map(post => ({
       ...post,
       editing: false,
@@ -524,8 +449,7 @@ async function runPipeline() {
       isExpanded: false
     }))
 
-    const newlyAddedText = newCount > 0 ? `Loaded ${newCount} new posts` : 'No new posts found'
-    status.value = `Done — ${newlyAddedText}`
+    status.value = newCount > 0 ? `Done — ${newCount} new posts` : "Done — no new posts"
     statusClass.value = "done"
 
   } catch (err) {
@@ -546,7 +470,7 @@ async function loadComments() {
     edited_comment: post.generated_comment,
     selected: false,
     posted: post.status === "posted",
-    isExpanded: false 
+    isExpanded: false
   }))
 }
 
