@@ -10,8 +10,13 @@ from backend.routes.comment_routes import router as comment_router
 from backend.routes.history_routes import router as history_router
 from backend.routes.edit_comment_routes import router as edit_comment_router
 from backend.routes.auth_routes import router as auth_router
+from backend.routes.settings_routes import router as settings_router
+from Ai_services.settings_manager import get_ai_settings
 
 app = FastAPI(title="LinkedIn Auto Comment Backend")
+
+# Initialize application settings on startup
+get_ai_settings()
 
 DIST_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
@@ -43,3 +48,4 @@ app.include_router(comment_router)
 app.include_router(history_router)
 app.include_router(edit_comment_router)
 app.include_router(auth_router)
+app.include_router(settings_router)

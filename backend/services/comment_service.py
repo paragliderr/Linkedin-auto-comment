@@ -1,5 +1,7 @@
-from Ai_services.chatbot import generate_comment
-from Ai_services.comment_assistant import improve_comment
+from Ai_services.wrapper import (
+    generate_comment,
+    improve_comment
+)
 
 def generate_comment_service(
     post_text: str,

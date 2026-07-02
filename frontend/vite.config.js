@@ -20,6 +20,7 @@ export default defineConfig({
       '/auth': 'http://localhost:8000',
       '/comments': 'http://localhost:8000',
       '/history': 'http://localhost:8000',
+      '/settings': 'http://localhost:8000',
     },
   },
 })

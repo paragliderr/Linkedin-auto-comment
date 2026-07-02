@@ -4,6 +4,12 @@
     <div class="card main-card">
 
       <div class="header">
+        <button 
+          class="settings-btn"
+          @click="openSettings"
+        >
+           ⚙ Settings
+        </button>
         <h1>LinkedIn Auto Commenter</h1>
         <p class="subtitle">AI-powered comments · Keyword filtering · Two scrapers</p>
       </div>
@@ -214,6 +220,77 @@
       </div>
 
     </div>
+     <div
+      v-if="showSettings"
+      class="settings-overlay"
+      @click.self="showSettings = false"
+    >
+      <div class="settings-modal">
+
+        <div class="settings-header">
+          <h2>Settings</h2>
+
+          <button
+            class="close-btn"
+            @click="showSettings = false"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="settings-body">
+
+          <div class="field">
+            <label>API Key</label>
+
+            <input
+              v-model="settings.api_key"
+              type="password"
+              placeholder="Enter your API key"
+            />
+          </div>
+
+          <div class="field">
+            <label>Base URL</label>
+
+            <input
+              v-model="settings.base_url"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div class="field">
+            <label>Model</label>
+
+            <input
+              v-model="settings.model"
+              placeholder="Model name"
+            />
+          </div>
+
+        </div>
+
+        <div class="settings-footer">
+
+          <button
+            class="secondary-btn"
+            @click="showSettings = false"
+          >
+            Cancel
+          </button>
+
+          <button 
+            class="primary-btn"
+            :disabled="savingSettings"
+            @click="saveSettings"
+          >
+            {{ savingSettings ? "Saving..." : "Save" }}
+          </button>
+
+        </div>
+
+      </div>
+    </div>
   </div>
 </template>
 
@@ -237,6 +314,17 @@ const posts            = ref([])
 const statusFilter     = ref("all")
 const sortOrder        = ref("newest")
 const userGoal         = ref("")
+
+const showSettings = ref(false)
+
+const settings = ref({
+  api_key: "",
+  base_url: "",
+  model: ""
+})
+
+const savingSettings = ref(false)
+const settingsLoaded = ref(false)
 
 const sessionExists   = ref(false)
 const checkingSession = ref(false)
@@ -461,6 +549,60 @@ async function runPipeline() {
   }
 }
 
+async function loadSettings() {
+
+  try {
+
+    const response = await api.get("/settings")
+
+    settings.value = response.data
+
+    settingsLoaded.value = true
+
+  } catch (error) {
+
+    console.error("Failed to load settings:", error)
+
+  }
+
+}
+
+async function openSettings() {
+
+  showSettings.value = true
+
+  await loadSettings()
+
+}
+
+async function saveSettings() {
+
+  savingSettings.value = true
+
+  try {
+
+    await api.post("/settings", settings.value)
+
+    showSettings.value = false
+
+    status.value = "Settings saved successfully"
+    statusClass.value = "done"
+
+  } catch (error) {
+
+    console.error("Failed to save settings:", error)
+
+    status.value = "Failed to save settings"
+    statusClass.value = "error"
+
+  } finally {
+
+    savingSettings.value = false
+
+  }
+
+}
+
 async function loadComments() {
   const history = await getHistory()
   posts.value = history.map(post => ({
@@ -503,12 +645,56 @@ onMounted(() => {
 }
 
 .header {
+  position: relative;
   padding: 40px 36px 24px;
   border-bottom: 1px solid #1e1e1e;
   text-align: center;
 }
-.header h1 { font-size: 1.8rem; font-weight: 700; color: #ffffff; margin-bottom: 8px; letter-spacing: -0.02em;}
-.header p.subtitle { color: #a3a3a3; font-size: 0.95rem; font-weight: 500; }
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.header .subtitle {
+  color: #a3a3a3;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.settings-btn {
+  position: absolute;
+  top: 32px;
+  right: 36px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 14px;
+
+  background: #111111;
+  color: #e0e0e0;
+
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+  background: #1b1b1b;
+  border-color: #4caf7d;
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(76, 175, 125, 0.15);
+}
 
 .controls { padding: 36px 36px; display: flex; flex-direction: column; align-items: center; gap: 32px; border-bottom: 1px solid #1e1e1e; }
 
@@ -806,5 +992,185 @@ onMounted(() => {
   .super-input { flex-direction: column; align-items: flex-start; gap: 12px; }
   .inline-match-mode { width: 100%; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);}
   .inline-match-mode .divider { display: none; }
+}
+
+/* ================= SETTINGS MODAL ================= */
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0,0,0,.65);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 9999;
+
+  backdrop-filter: blur(6px);
+}
+
+.settings-modal {
+  width: 100%;
+  max-width: 500px;
+
+  background: #0d0d0d;
+
+  border: 1px solid rgba(255,255,255,.08);
+
+  border-radius: 18px;
+
+  box-shadow:
+      0 25px 80px rgba(0,0,0,.8),
+      inset 0 1px 0 rgba(255,255,255,.05);
+
+  overflow: hidden;
+}
+
+.settings-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  padding:22px 28px;
+
+  border-bottom:1px solid #1e1e1e;
+}
+
+.settings-header h2{
+  font-size:1.35rem;
+  color:white;
+}
+
+.close-btn{
+  background:none;
+  border:none;
+
+  color:#888;
+
+  font-size:1.4rem;
+
+  cursor:pointer;
+
+  transition:.2s;
+}
+
+.close-btn:hover{
+  color:white;
+}
+
+.settings-body{
+
+  padding:28px;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:22px;
+}
+
+.settings-body .field{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:8px;
+}
+
+.settings-body label{
+
+  font-size:.8rem;
+
+  color:#888;
+
+  text-transform:uppercase;
+
+  letter-spacing:.08em;
+}
+
+.settings-body input{
+
+  background:#080808;
+
+  border:1px solid rgba(255,255,255,.1);
+
+  color:white;
+
+  border-radius:10px;
+
+  padding:14px 16px;
+
+  font-size:.95rem;
+
+  outline:none;
+
+  transition:.2s;
+}
+
+.settings-body input:focus{
+
+  border-color:#4caf7d;
+
+  box-shadow:0 0 0 3px rgba(76,175,125,.15);
+}
+
+.settings-footer{
+
+  display:flex;
+
+  justify-content:flex-end;
+
+  gap:12px;
+
+  padding:24px 28px;
+
+  border-top:1px solid #1e1e1e;
+}
+
+.secondary-btn{
+
+  background:transparent;
+
+  color:#999;
+
+  border:1px solid #333;
+
+  border-radius:10px;
+
+  padding:10px 18px;
+
+  cursor:pointer;
+}
+
+.secondary-btn:hover{
+
+  border-color:#555;
+
+  color:white;
+}
+
+.primary-btn{
+    background:#4caf7d;
+
+    color:white;
+
+    border:none;
+
+    border-radius:10px;
+
+    padding:10px 22px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.primary-btn:hover{
+    background:#5bb987;
 }
 </style>

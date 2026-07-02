@@ -1,19 +1,16 @@
 from openai import OpenAI
 
-from Ai_services.config import (
-    CHATBOT_API_KEY,
-    BASE_URL,
-    MODEL_NAME
-)
-
-client = OpenAI(
-    api_key=CHATBOT_API_KEY,
-    base_url=BASE_URL
-)
+from Ai_services.settings_manager import get_ai_settings
 
 def improve_comment(original_comment, instruction):
+    settings = get_ai_settings()
+
+    client = OpenAI(
+        api_key=settings["api_key"],
+        base_url=settings["base_url"]
+    )
     response = client.chat.completions.create(
-        model=MODEL_NAME,
+        model=settings["model"],
         messages=[
             {
                 "role": "system",
