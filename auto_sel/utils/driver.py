@@ -73,18 +73,18 @@ def create_chrome_driver():
 def get_driver():
 
     try:
-        print("Launching Microsoft Edge...")
-        return create_edge_driver()
-
-    except Exception as e:
-        print(f"Edge unavailable: {e}")
-
-    try:
         print("Launching Google Chrome...")
         return create_chrome_driver()
 
     except Exception as e:
         print(f"Chrome unavailable: {e}")
+
+    try:
+        print("Launching Microsoft Edge...")
+        return create_edge_driver()
+
+    except Exception as e:
+        print(f"Edge unavailable: {e}")
 
     raise RuntimeError(
         "No supported browser found. Please install Microsoft Edge or Google Chrome."
