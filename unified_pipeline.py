@@ -1,8 +1,7 @@
 import uuid
 import threading
 import pandas as pd
-from pathlib import Path
-
+from utils.app_paths import POSTS_CSV_PATH
 from automation.scrape_posts import scrape_posts
 from auto_sel.auth.session import load_session
 from auto_sel.scraper.fetch_posts import fetch_posts
@@ -47,7 +46,7 @@ def _run_pipeline(job_id: str, scraper_type: str, keywords: list, match_mode: st
             return
         
         
-        CSV_PATH = Path("data/linkedin_posts.csv")
+        CSV_PATH = POSTS_CSV_PATH
         existing_urls = set()
         
         if CSV_PATH.exists():

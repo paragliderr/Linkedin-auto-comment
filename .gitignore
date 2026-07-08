@@ -29,3 +29,13 @@ frontend/dist/
 
 # Local AI settings
 settings.json
+
+# User-specific application data
+user_data/
+
+# PyInstaller
+build/
+dist/
+
+# Playwright browsers
+playwright-browsers/

@@ -2,13 +2,10 @@ import os
 import pickle
 import time
 from playwright.sync_api import sync_playwright
+from utils.playwright_paths import configure_playwright
 from auto_sel.utils.driver import get_driver
+from utils.app_paths import COOKIES_PATH, STATE_PATH
 
-COOKIE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.pkl")
-STATE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "automation", "auth", "state.json"
-)
 
 LOGIN_TIMEOUT = 300  # seconds
 
@@ -48,7 +45,7 @@ def unified_login():
             print("✗ Login timed out — no feed detected within 5 minutes.")
             return
 
-        with open(COOKIE_PATH, "wb") as f:
+        with open(COOKIES_PATH, "wb") as f:
             pickle.dump(driver.get_cookies(), f)
         print("✓ Selenium cookies saved")
 
@@ -58,7 +55,8 @@ def unified_login():
         driver.quit()
 
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-
+    
+    configure_playwright()
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()

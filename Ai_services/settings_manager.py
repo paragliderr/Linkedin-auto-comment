@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 from Ai_services.config import (
     CHATBOT_API_KEY,
@@ -7,11 +6,7 @@ from Ai_services.config import (
     MODEL_NAME,
 )
 
-SETTINGS_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "settings.json"
-)
-
+from utils.app_paths import SETTINGS_PATH
 
 DEFAULT_SETTINGS = {
     "api_key": "",

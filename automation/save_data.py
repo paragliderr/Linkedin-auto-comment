@@ -1,7 +1,9 @@
 import pandas as pd
 from pathlib import Path
 
-CSV_PATH = Path(__file__).resolve().parent.parent / "data" / "linkedin_posts.csv"
+from utils.app_paths import POSTS_CSV_PATH
+
+CSV_PATH = POSTS_CSV_PATH
 
 
 def save_posts(posts):

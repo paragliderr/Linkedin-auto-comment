@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException
-import subprocess
-import sys
+import threading
 import os
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+from auto_sel.auth.unified_login import unified_login
+from utils.app_paths import COOKIES_PATH
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-COOKIES_PATH = os.path.join(BASE_DIR, "auto_sel", "auth", "cookies.pkl")
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.get("/check-session")
@@ -17,7 +16,12 @@ async def check_session():
 @router.post("/login")
 async def trigger_linkedin_login():
     try:
-        subprocess.Popen([sys.executable, "-m", "auto_sel.auth.unified_login"])
+        threading.Thread(
+            target=unified_login,
+            daemon=True
+        ).start()
+        
         return {"success": True}
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

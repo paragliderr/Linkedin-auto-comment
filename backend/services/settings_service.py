@@ -1,10 +1,5 @@
 import json
-from pathlib import Path
-
-SETTINGS_PATH = (
-    Path(__file__).resolve().parent.parent.parent
-    / "settings.json"
-)
+from utils.app_paths import SETTINGS_PATH
 
 DEFAULT_SETTINGS = {
     "api_key": "",

@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+from utils.playwright_paths import configure_playwright
 
 from automation.config import (
     FEED_URL,
@@ -12,7 +13,8 @@ from automation.save_data import save_posts
 def scrape_posts(max_posts=MAX_POSTS):
 
     posts = []
-
+    
+    configure_playwright()
     with sync_playwright() as p:
 
         browser = p.chromium.launch(

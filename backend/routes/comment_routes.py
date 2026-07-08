@@ -59,7 +59,8 @@ def post_to_linkedin(request: PostCommentRequest):
 
 @router.delete("/post")
 def delete_post(post_text: str = Query(...)):
-    CSV_PATH = Path("data/linkedin_posts.csv")
+    from utils.app_paths import POSTS_CSV_PATH
+    CSV_PATH = POSTS_CSV_PATH
     if not CSV_PATH.exists():
         return {"status": "ok"}
     df = pd.read_csv(CSV_PATH)

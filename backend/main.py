@@ -1,4 +1,5 @@
-import sys, os
+import os
+import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
@@ -18,11 +19,17 @@ app = FastAPI(title="LinkedIn Auto Comment Backend")
 # Initialize application settings on startup
 get_ai_settings()
 
+if getattr(sys, "frozen", False):
+    BASE_DIR = sys._MEIPASS
+else:
+    BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
 DIST_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
+    BASE_DIR,
     "frontend",
     "dist"
 )
+
 
 app.mount(
     "/assets",

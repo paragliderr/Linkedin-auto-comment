@@ -1,14 +1,15 @@
 import pickle
 import os
 from auto_sel.utils.driver import get_driver
+from utils.app_paths import COOKIES_PATH
 
 
 def load_session():
     driver = get_driver()
     driver.get("https://www.linkedin.com")
     
-    cookie_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.pkl")
-    with open(cookie_path, "rb") as file:
+    
+    with open(COOKIES_PATH, "rb") as file:
         cookies = pickle.load(file)
 
     for cookie in cookies:

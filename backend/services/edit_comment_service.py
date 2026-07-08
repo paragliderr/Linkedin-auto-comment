@@ -1,12 +1,7 @@
 import pandas as pd
-from pathlib import Path
+from utils.app_paths import POSTS_CSV_PATH
 
-CSV_PATH = (
-    Path(__file__).resolve().parent.parent.parent
-    / "data"
-    / "linkedin_posts.csv"
-)
-
+CSV_PATH = POSTS_CSV_PATH
 
 def update_comment(comment_id, edited_comment):
 
