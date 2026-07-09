@@ -14,9 +14,11 @@ from backend.routes.auth_routes import router as auth_router
 from backend.routes.settings_routes import router as settings_router
 from Ai_services.settings_manager import get_ai_settings
 
-app = FastAPI(title="LinkedIn Auto Comment Backend")
+from backend.routes.browser_ai_routes import router as browser_ai_router
 
-# Initialize application settings on startup
+app = FastAPI(title="LinkedIn Auto Comment Backend")
+app.include_router(browser_ai_router)
+
 get_ai_settings()
 
 if getattr(sys, "frozen", False):

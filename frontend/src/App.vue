@@ -1,210 +1,122 @@
 <template>
   <div class="app">
-
     <div class="card main-card">
 
       <div class="header">
-        <button 
-          class="settings-btn"
-          @click="openSettings"
-        >
-           ⚙ Settings
-        </button>
+        <button class="settings-btn" @click="openSettings">⚙ Settings</button>
         <h1>LinkedIn Auto Commenter</h1>
         <p class="subtitle">AI-powered comments · Keyword filtering · Two scrapers</p>
       </div>
 
       <div class="controls">
-
         <div class="toggles-group">
           <div class="scraper-pill-container">
             <div class="scraper-pill">
-              <button
-                :class="{ active: selectedScraper === 'playwright' }"
-                @click="selectedScraper = 'playwright'"
-              >Playwright</button>
-              <button
-                :class="{ active: selectedScraper === 'selenium' }"
-                @click="selectedScraper = 'selenium'"
-              >Selenium</button>
+              <button :class="{ active: selectedScraper === 'playwright' }" @click="selectedScraper = 'playwright'">Playwright</button>
+              <button :class="{ active: selectedScraper === 'selenium' }" @click="selectedScraper = 'selenium'">Selenium</button>
             </div>
           </div>
 
           <div class="session-toggle-container">
             <div class="session-toggle">
-              <button
-                :class="{ active: sessionType === 'current', disabled: !sessionExists }"
-                @click="selectCurrentSession"
-                title="Use saved session"
-              >
+              <button :class="{ active: sessionType === 'current' }" @click="selectCurrentSession" title="Use saved session">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>
                 </svg>
                 <span class="toggle-text">Current Session</span>
               </button>
-              <button
-                :class="{ active: sessionType === 'new' }"
-                @click="startNewSession"
-                title="Open a browser to log in"
-              >
+              <button :class="{ active: sessionType === 'new' }" @click="startNewSession" title="Start new login session">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="8.5" cy="7" r="4"></circle>
-                  <line x1="20" y1="8" x2="20" y2="14"></line>
-                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line>
                 </svg>
                 <span class="toggle-text">New Session</span>
               </button>
             </div>
-
-            <div class="session-hint" :class="sessionHintClass" v-if="sessionHintText">
-              {{ sessionHintText }}
-            </div>
+            <div class="session-hint" :class="sessionHintClass" v-if="sessionHintText">{{ sessionHintText }}</div>
           </div>
         </div>
 
         <div class="field super-field">
-          <label>Target Keywords <span class="hint">(Enter to add)</span></label>
-
+          <label>Target Keywords <span class="hint">(Press Enter to add tags)</span></label>
           <div class="super-input" :class="{ 'is-focused': inputFocused }">
-
             <div class="tags-and-input">
               <span class="tag" v-for="(kw, i) in keywords" :key="i">
-                {{ kw }}
-                <button @click="removeKeyword(i)">✕</button>
+                {{ kw }} <button @click="removeKeyword(i)">✕</button>
               </span>
-
-              <input
-                v-model="keywordInput"
-                placeholder="AI, hiring..."
-                @keyup.enter="addKeyword"
-                @focus="inputFocused = true"
-                @blur="inputFocused = false"
-              />
+              <input v-model="keywordInput" placeholder="Type keywords..." @keyup.enter="addKeyword" @focus="inputFocused = true" @blur="inputFocused = false" />
             </div>
-
             <div class="inline-match-mode" v-if="keywords.length > 0 || keywordInput.length > 0">
               <div class="divider"></div>
               <div class="mini-toggle">
-                <button :class="{ active: matchMode === 'any' }" @click="matchMode = 'any'">Any</button>
-                <button :class="{ active: matchMode === 'all' }" @click="matchMode = 'all'">All</button>
+                <button :class="{ active: matchMode === 'any' }" @click="matchMode = 'any'">Any keyword</button>
+                <button :class="{ active: matchMode === 'all' }" @click="matchMode = 'all'">All keywords</button>
               </div>
             </div>
-
           </div>
         </div>
 
         <div class="field super-field">
           <label>Your Goal <span class="hint">(personalizes comments)</span></label>
           <div class="super-input">
-            <input v-model="userGoal" placeholder="Get internships, connect with recruiters..." />
+            <input v-model="userGoal" placeholder="e.g. Get internships, connect with recruiters..." />
           </div>
         </div>
 
-        <button
-          class="run-btn"
-          :disabled="loading || !canRunPipeline"
-          :title="!canRunPipeline ? 'Set up a session first' : ''"
-          @click="runPipeline"
-        >
-          {{ loading ? "Generating…" : "Generate Comments" }}
+        <button class="run-btn" :disabled="loading" @click="runPipeline">
+          {{ loading ? "Generating..." : "Generate Comments" }}
         </button>
       </div>
 
-      <div class="status-bar" :class="statusClass">
-        <span class="dot" /> {{ status }}
-      </div>
+      <div class="status-bar" :class="statusClass"><span class="dot" /> {{ status }}</div>
 
       <div class="stats" v-if="posts.length">
-        <div class="stat">
-          <span class="stat-num">{{ posts.length }}</span>
-          <span class="stat-label">Matched</span>
-        </div>
-        <div class="stat">
-          <span class="stat-num">{{ successCount }}</span>
-          <span class="stat-label">Generated</span>
-        </div>
-        <div class="stat">
-          <span class="stat-num">{{ errorCount }}</span>
-          <span class="stat-label">Errors</span>
-        </div>
-        <div class="stat">
-          <span class="stat-num">{{ selectedCount }}</span>
-          <span class="stat-label">Selected</span>
-        </div>
+        <div class="stat"><span class="stat-num">{{ posts.length }}</span><span class="stat-label">Matched</span></div>
+        <div class="stat"><span class="stat-num">{{ successCount }}</span><span class="stat-label">Generated</span></div>
+        <div class="stat"><span class="stat-num">{{ errorCount }}</span><span class="stat-label">Errors</span></div>
+        <div class="stat"><span class="stat-num">{{ selectedCount }}</span><span class="stat-label">Selected</span></div>
       </div>
 
       <div class="toolbar" v-if="posts.length">
-        <div class="toolbar-left">
-          <label class="custom-checkbox-wrapper select-all">
-            <input
-              type="checkbox"
-              :checked="allSelected"
-              :indeterminate="someSelected && !allSelected"
-              @change="toggleSelectAll"
-            />
-            <span class="checkmark"></span>
-            <span>{{ allSelected ? "Deselect All" : "Select All" }}</span>
-          </label>
-        </div>
-
+        <label class="custom-checkbox-wrapper select-all">
+          <input type="checkbox" :checked="allSelected" @change="toggleSelectAll" />
+          <span class="checkmark"></span>
+          <span>{{ allSelected ? "Deselect All" : "Select All" }}</span>
+        </label>
         <div class="toolbar-right">
           <select v-model="statusFilter" class="filter-select">
-            <option value="all">All</option>
-            <option value="generated">Generated</option>
-            <option value="edited">Edited</option>
-            <option value="posted">Posted</option>
-            <option value="failed">Failed</option>
+            <option value="all">All</option><option value="generated">Generated</option><option value="edited">Edited</option><option value="posted">Posted</option><option value="failed">Failed</option>
           </select>
-
           <select v-model="sortOrder" class="filter-select">
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
+            <option value="newest">Newest</option><option value="oldest">Oldest</option>
           </select>
-
-          <button class="bulk-delete-btn" v-if="selectedCount" @click="removeSelected">
-            Remove ({{ selectedCount }})
-          </button>
-
-          <button class="post-selected-btn" v-if="selectedCount" @click="postSelected">
-            Post Selected ({{ selectedCount }})
-          </button>
+          <button class="bulk-delete-btn" v-if="selectedCount" @click="removeSelected">Remove ({{ selectedCount }})</button>
+          <button class="post-selected-btn" v-if="selectedCount" @click="postSelected">Post Selected ({{ selectedCount }})</button>
         </div>
       </div>
 
       <div class="cards-wrap" v-if="posts.length">
-        <div
-          class="post-card"
-          v-for="(post, i) in filteredPosts"
-          :key="i"
-          :class="[post.status, { selected: post.selected }]"
-        >
+        <div class="post-card" v-for="(post, i) in filteredPosts" :key="i" :class="[post.status, { selected: post.selected }]">
           <div class="post-card-header">
             <label class="custom-checkbox-wrapper post-select">
               <input type="checkbox" v-model="post.selected" />
               <span class="checkmark"></span>
               <span class="post-number">Post #{{ sortOrder === 'newest' ? posts.length - i : i + 1 }}</span>
             </label>
-            <button class="delete-btn" @click="removePost(i)" title="Remove">✕</button>
+            <button class="delete-btn" @click="removePost(i)">✕</button>
           </div>
-
           <div class="post-card-body">
             <div class="post-col">
               <div class="section-header">
                 <span class="section-title">Original Post</span>
-                <a v-if="post.post_url" :href="post.post_url" target="_blank" class="view-post-btn linkedin-btn">
-                  LinkedIn ↗
-                </a>
+                <a v-if="post.post_url" :href="post.post_url" target="_blank" class="view-post-btn linkedin-btn">LinkedIn ↗</a>
               </div>
               <div class="post-content">{{ post.post_text }}</div>
             </div>
-
             <button class="expand-toggle-btn" @click="post.isExpanded = !post.isExpanded">
               {{ post.isExpanded ? 'Hide comment ▲' : 'View comment ▼' }}
               <span class="badge" :class="post.status" v-if="!post.isExpanded">{{ post.status }}</span>
             </button>
-
             <div class="comment-workspace" v-show="post.isExpanded">
               <div class="section-header">
                 <span class="section-title text-pink">AI Generated Comment</span>
@@ -215,80 +127,69 @@
         </div>
       </div>
 
-      <div class="empty" v-if="!posts.length && !loading">
-        Run the pipeline to see results here.
-      </div>
-
+      <div class="empty" v-if="!posts.length && !loading">Run the pipeline to see results here.</div>
     </div>
-     <div
-      v-if="showSettings"
-      class="settings-overlay"
-      @click.self="showSettings = false"
-    >
-      <div class="settings-modal">
 
+    <div v-if="showSettings" class="settings-overlay" @click.self="showSettings = false">
+      <div class="settings-modal">
         <div class="settings-header">
           <h2>Settings</h2>
-
-          <button
-            class="close-btn"
-            @click="showSettings = false"
-          >
-            ✕
-          </button>
+          <button class="close-btn" @click="showSettings = false">✕</button>
         </div>
-
+        
         <div class="settings-body">
-
           <div class="field">
             <label>API Key</label>
-
-            <input
-              v-model="settings.api_key"
-              type="password"
-              placeholder="Enter your API key"
-            />
+            <input v-model="settings.api_key" type="password" placeholder="Enter key" />
           </div>
-
           <div class="field">
             <label>Base URL</label>
-
-            <input
-              v-model="settings.base_url"
-              placeholder="https://..."
-            />
+            <input v-model="settings.base_url" placeholder="https://..." />
+          </div>
+          <div class="field">
+            <label>Model</label>
+            <input v-model="settings.model" placeholder="Model name" />
           </div>
 
           <div class="field">
-            <label>Model</label>
-
-            <input
-              v-model="settings.model"
-              placeholder="Model name"
-            />
+            <label>Comment Source</label>
+            <div class="mini-toggle" style="display:inline-flex; margin-top:4px;">
+              <button :class="{ active: settings.comment_source === 'api' }" @click="settings.comment_source = 'api'" type="button">API</button>
+              <button :class="{ active: settings.comment_source === 'browser' }" @click="settings.comment_source = 'browser'" type="button">Browser Chatbot</button>
+            </div>
           </div>
+
+          <template v-if="settings.comment_source === 'browser'">
+            <div class="field">
+              <label>Chatbot URL</label>
+              <input v-model="settings.browser_ai_url" placeholder="https://chat.openai.com/" />
+            </div>
+            <div class="field">
+              <label>Input Box Selector</label>
+              <input v-model="settings.browser_ai_input_css" placeholder="#prompt-textarea" />
+            </div>
+            <div class="field">
+              <label>Send Button Selector</label>
+              <input v-model="settings.browser_ai_send_css" placeholder="button[data-testid='send-button']" />
+            </div>
+            <div class="field">
+              <label>Reply Selector</label>
+              <input v-model="settings.browser_ai_reply_css" placeholder="div[data-message-author-role='assistant']" />
+            </div>
+            
+            <button class="secondary-btn" style="width: 100%; margin-top: 8px; text-align: center;" type="button" @click="startBrowserAiSession" :disabled="startingBrowserAi">
+              {{ startingBrowserAi ? "Opening…" : "Start Browser Session" }}
+            </button>
+            
+            <div class="session-hint" :class="browserAiHintClass" v-if="browserAiHint">{{ browserAiHint }}</div>
+          </template>
 
         </div>
 
         <div class="settings-footer">
-
-          <button
-            class="secondary-btn"
-            @click="showSettings = false"
-          >
-            Cancel
-          </button>
-
-          <button 
-            class="primary-btn"
-            :disabled="savingSettings"
-            @click="saveSettings"
-          >
-            {{ savingSettings ? "Saving..." : "Save" }}
-          </button>
-
+          <button class="secondary-btn" @click="showSettings = false">Cancel</button>
+          <button class="primary-btn" :disabled="savingSettings" @click="saveSettings">Save</button>
         </div>
-
       </div>
     </div>
   </div>
@@ -297,38 +198,46 @@
 <script setup>
 import { ref, computed, onMounted } from "vue"
 import api from "./services/api"
-
 import CommentEditor from "./components/CommentEditor/CommentEditor.vue"
 import { getHistory } from "./services/historyService"
 
 const selectedScraper = ref("selenium")
-const sessionType      = ref("current")
+const sessionType      = ref("current") 
 const keywordInput     = ref("")
 const keywords         = ref([])
 const matchMode        = ref("any")
 const status           = ref("Ready")
 const statusClass      = ref("idle")
 const loading          = ref(false)
-const inputFocused     = ref(false)
+const inputFocused     = ref(false) 
 const posts            = ref([])
 const statusFilter     = ref("all")
 const sortOrder        = ref("newest")
 const userGoal         = ref("")
 
-const showSettings = ref(false)
+const showSettings     = ref(false)
+const savingSettings   = ref(false)
 
-const settings = ref({
-  api_key: "",
-  base_url: "",
-  model: ""
+// UPDATED: Added Browser AI fields to settings ref
+const settings = ref({ 
+  api_key: "", 
+  base_url: "", 
+  model: "",
+  comment_source: "api",
+  browser_ai_url: "",
+  browser_ai_input_css: "",
+  browser_ai_send_css: "",
+  browser_ai_reply_css: ""
 })
 
-const savingSettings = ref(false)
-const settingsLoaded = ref(false)
+// NEW: Browser AI specific refs
+const startingBrowserAi = ref(false)
+const browserAiHint = ref("")
+const browserAiHintClass = ref("")
 
-const sessionExists   = ref(false)
-const checkingSession = ref(false)
-const startingSession = ref(false)
+const sessionExists    = ref(false)
+const checkingSession  = ref(false)
+const startingSession  = ref(false)
 
 const successCount  = computed(() => posts.value.filter(p => p.status === "generated").length)
 const errorCount    = computed(() => posts.value.filter(p => p.status === "error").length)
@@ -336,15 +245,16 @@ const selectedCount = computed(() => posts.value.filter(p => p.selected).length)
 const allSelected   = computed(() => posts.value.length > 0 && posts.value.every(p => p.selected))
 const someSelected  = computed(() => posts.value.some(p => p.selected))
 
-const canRunPipeline = computed(() => {
-  if (checkingSession.value || startingSession.value) return false
-  return sessionExists.value
+const filteredPosts = computed(() => {
+  let result = [...posts.value]
+  if (statusFilter.value !== "all") result = result.filter(post => post.status === statusFilter.value)
+  if (sortOrder.value === "newest") result.reverse()
+  return result
 })
 
-// Single source of truth for the session hint — replaces the old 5-branch template block
 const sessionHintText = computed(() => {
   if (checkingSession.value) return "Checking session…"
-  if (sessionType.value === "new" && startingSession.value) return "Log in in the browser window that opened…"
+  if (sessionType.value === "new" && startingSession.value) return "Log in in the browser window…"
   if (sessionExists.value) return "✓ Session ready"
   if (sessionType.value === "current") return "No saved session — click New Session"
   return ""
@@ -357,78 +267,10 @@ const sessionHintClass = computed(() => {
   return "warning"
 })
 
-const filteredPosts = computed(() => {
-  let result = [...posts.value]
-  if (statusFilter.value !== "all") {
-    result = result.filter(post => post.status === statusFilter.value)
-  }
-  if (sortOrder.value === "newest") result.reverse()
-  return result
+const canRunPipeline = computed(() => {
+  if (sessionType.value === 'new') return !startingSession.value
+  return sessionExists.value
 })
-
-function addKeyword() {
-  const raw = keywordInput.value.trim()
-  if (!raw) return
-  raw.split(",")
-    .map(k => k.trim())
-    .filter(k => k && !keywords.value.includes(k))
-    .forEach(k => keywords.value.push(k))
-  keywordInput.value = ""
-}
-
-function removeKeyword(i) {
-  keywords.value.splice(i, 1)
-}
-
-function toggleSelectAll() {
-  const next = !allSelected.value
-  posts.value.forEach(p => { p.selected = next })
-}
-
-async function removePost(i) {
-  const post = filteredPosts.value[i]
-  const originalIndex = posts.value.findIndex(p => p === post)
-  try {
-    await api.delete("/comments/post", { params: { post_text: post.post_text } })
-  } catch (err) {
-    console.error("Failed to delete from CSV:", err)
-  }
-  if (originalIndex !== -1) posts.value.splice(originalIndex, 1)
-}
-
-async function removeSelected() {
-  const toRemove = posts.value.filter(p => p.selected)
-  for (const post of toRemove) {
-    try {
-      await api.delete("/comments/post", { params: { post_text: post.post_text } })
-    } catch (err) {
-      console.error("Failed to delete from CSV:", err)
-    }
-  }
-  posts.value = posts.value.filter(p => !p.selected)
-}
-
-async function postSelected() {
-  const selectedPosts = posts.value.filter(post => post.selected)
-  if (!selectedPosts.length) return
-  if (!confirm(`Post ${selectedPosts.length} selected comments to LinkedIn?`)) return
-
-  for (const post of selectedPosts) {
-    try {
-      const response = await api.post("/comments/post-to-linkedin", {
-        post_url: post.post_url,
-        comment_text: post.edited_comment
-      })
-      post.status = response.data.success ? "posted" : "failed"
-      if (response.data.success) post.posted = true
-    } catch (err) {
-      console.error(err)
-      post.status = "failed"
-    }
-  }
-  status.value = "Posting completed"
-  statusClass.value = "done"
-}
 
 async function checkSession() {
   checkingSession.value = true
@@ -436,171 +278,113 @@ async function checkSession() {
     const res = await api.get("/auth/check-session")
     sessionExists.value = !!res.data?.exists
   } catch (err) {
-    console.error("Failed to check session:", err)
     sessionExists.value = false
   } finally {
     checkingSession.value = false
   }
 }
 
-function selectCurrentSession() {
-  sessionType.value = "current"
-  checkSession()
-}
+function selectCurrentSession() { sessionType.value = "current"; checkSession(); }
 
 async function startNewSession() {
-  sessionType.value = "new"
-  startingSession.value = true
-  sessionExists.value = false
-  status.value = "Waiting for LinkedIn login…"
-  statusClass.value = "running"
-
+  sessionType.value = "new"; startingSession.value = true;
   try {
     await api.post("/auth/login")
-
-    let confirmed = false
     for (let i = 0; i < 60; i++) {
-      await new Promise(resolve => setTimeout(resolve, 5000))
+      await new Promise(r => setTimeout(r, 5000))
       const res = await api.get("/auth/check-session")
-      if (res.data?.exists) {
-        confirmed = true
-        break
-      }
+      if (res.data?.exists) { sessionExists.value = true; startingSession.value = false; break; }
     }
+  } catch (e) { console.error(e); } finally { startingSession.value = false; }
+}
 
-    if (confirmed) {
-      sessionExists.value = true
-      status.value = "Session saved"
-      statusClass.value = "done"
+// NEW: Function to start Browser AI Session
+async function startBrowserAiSession() {
+  startingBrowserAi.value = true
+  browserAiHint.value = "Opening browser…"
+  browserAiHintClass.value = "info"
+  try {
+    const res = await api.post("/browser-ai/start", {
+      url: settings.value.browser_ai_url,
+      input_css: settings.value.browser_ai_input_css,
+      send_css: settings.value.browser_ai_send_css,
+      reply_css: settings.value.browser_ai_reply_css
+    })
+    if (res.data.status === "needs_manual_login") {
+      browserAiHint.value = "Log in in the opened window, then click again to save."
+      browserAiHintClass.value = "warning"
     } else {
-      status.value = "Login timed out — try again"
-      statusClass.value = "error"
+      browserAiHint.value = "✓ Session active"
+      browserAiHintClass.value = "success"
     }
   } catch (err) {
-    console.error("Failed to start new session:", err)
-    status.value = "Couldn't open login — check backend"
-    statusClass.value = "error"
+    console.error(err)
+    browserAiHint.value = "Failed to open session — check backend"
+    browserAiHintClass.value = "error"
   } finally {
-    startingSession.value = false
+    startingBrowserAi.value = false
   }
+}
+
+function addKeyword() {
+  const raw = keywordInput.value.trim()
+  if (!raw) return
+  raw.split(",").map(k => k.trim()).filter(k => k && !keywords.value.includes(k)).forEach(k => keywords.value.push(k))
+  keywordInput.value = ""
+}
+
+function removeKeyword(i) { keywords.value.splice(i, 1) }
+
+function toggleSelectAll() {
+  const next = !allSelected.value
+  posts.value.forEach(p => { p.selected = next })
 }
 
 async function runPipeline() {
   if (keywordInput.value.trim()) addKeyword()
+  if (!canRunPipeline.value) { status.value = "Set up a session first"; statusClass.value = "error"; return; }
 
-  if (!canRunPipeline.value) {
-    status.value = "Set up a session first"
-    statusClass.value = "error"
-    return
-  }
-
-  loading.value     = true
-  status.value      = `Running ${selectedScraper.value}…`
-  statusClass.value = "running"
-
+  loading.value = true; status.value = `Running ${selectedScraper.value}…`; statusClass.value = "running"
   try {
-    const prevHistory = await getHistory()
-    const prevCount = prevHistory.length
-
-    const params = {
-      scraper_type: selectedScraper.value,
-      session_type: sessionType.value,
-      match_mode: matchMode.value,
-      goal: userGoal.value
-    }
-    keywords.value.forEach(kw => {
-      params["keywords"] = params["keywords"]
-        ? [...[params["keywords"]].flat(), kw]
-        : kw
-    })
-
+    const prevCount = (await getHistory()).length
+    const params = { scraper_type: selectedScraper.value, session_type: sessionType.value, match_mode: matchMode.value, goal: userGoal.value, keywords: keywords.value }
     const response = await api.post("/comments/run", null, { params })
     const jobId = response.data
     let jobStatus = "running"
-
     while (jobStatus === "running") {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      const statusResponse = await api.get(`/comments/run/status/${jobId}`)
-      jobStatus = statusResponse.data.status
+      await new Promise(r => setTimeout(r, 2000))
+      jobStatus = (await api.get(`/comments/run/status/${jobId}`)).data.status
     }
-
     const history = await getHistory()
-    const newCount = history.length - prevCount
-
-    posts.value = history.map(post => ({
-      ...post,
-      editing: false,
-      edited: post.status === "edited",
-      edited_comment: post.generated_comment,
-      selected: false,
-      posted: post.status === "posted",
-      isExpanded: false
-    }))
-
-    status.value = newCount > 0 ? `Done — ${newCount} new posts` : "Done — no new posts"
-    statusClass.value = "done"
-
-  } catch (err) {
-    console.error(err)
-    status.value = "Pipeline failed — check console"
-    statusClass.value = "error"
-  } finally {
-    loading.value = false
-  }
+    posts.value = history.map(p => ({ ...p, selected: false, isExpanded: false }))
+    status.value = `Done — ${history.length - prevCount} new posts`
+  } catch (e) { console.error(e); status.value = "Failed"; statusClass.value = "error" } finally { loading.value = false }
 }
 
-async function loadSettings() {
-
+async function openSettings() { 
+  showSettings.value = true;
   try {
-
     const response = await api.get("/settings")
-
-    settings.value = response.data
-
-    settingsLoaded.value = true
-
+    settings.value = { ...settings.value, ...response.data }
+    // Ensure default fallback if backend is empty
+    if (!settings.value.comment_source) settings.value.comment_source = 'api'
   } catch (error) {
-
     console.error("Failed to load settings:", error)
-
   }
-
 }
 
-async function openSettings() {
-
-  showSettings.value = true
-
-  await loadSettings()
-
-}
-
-async function saveSettings() {
-
-  savingSettings.value = true
-
+async function saveSettings() { 
+  savingSettings.value = true; 
   try {
-
-    await api.post("/settings", settings.value)
-
-    showSettings.value = false
-
-    status.value = "Settings saved successfully"
-    statusClass.value = "done"
-
-  } catch (error) {
-
-    console.error("Failed to save settings:", error)
-
-    status.value = "Failed to save settings"
-    statusClass.value = "error"
-
+    await api.post("/settings", settings.value); 
+    status.value = "Settings saved";
+    statusClass.value = "done";
+  } catch (e) {
+    console.error("Save failed", e);
   } finally {
-
-    savingSettings.value = false
-
+    showSettings.value = false; 
+    savingSettings.value = false; 
   }
-
 }
 
 async function loadComments() {
@@ -612,14 +396,11 @@ async function loadComments() {
     edited_comment: post.generated_comment,
     selected: false,
     posted: post.status === "posted",
-    isExpanded: false
+    isExpanded: false 
   }))
 }
 
-onMounted(() => {
-  loadComments()
-  checkSession()
-})
+onMounted(() => { loadComments(); checkSession(); })
 </script>
 
 <style scoped>
@@ -669,22 +450,16 @@ onMounted(() => {
   position: absolute;
   top: 32px;
   right: 36px;
-
   display: flex;
   align-items: center;
   gap: 8px;
-
   padding: 8px 14px;
-
   background: #111111;
   color: #e0e0e0;
-
   border: 1px solid #2a2a2a;
   border-radius: 10px;
-
   font-size: 0.85rem;
   font-weight: 600;
-
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -711,16 +486,7 @@ onMounted(() => {
 .scraper-pill button { background: transparent; border: none; color: #777; font-size: 0.85rem; font-weight: 600; padding: 10px 24px; border-radius: 30px; cursor: pointer; transition: all 0.2s ease; }
 .scraper-pill button.active { background: #262626; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
 
-/* Expandable Session Toggle Styling */
 .session-toggle-container { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
-
-.session-step-label {
-  font-size: 0.75rem;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  font-weight: 700;
-}
 
 .session-toggle { 
   display: inline-flex; 
@@ -838,7 +604,6 @@ onMounted(() => {
 .post-selected-btn { background: #0a192f; border: 1px solid #172a45; color: #64b5f6; }
 .post-selected-btn:hover { background: #112240; border-color: #64b5f6; box-shadow: 0 4px 16px rgba(100, 181, 246, 0.3);}
 
-
 .cards-wrap { display: flex; flex-direction: column; gap: 32px; padding: 32px 36px 40px; background: #000000; }
 
 .post-card {
@@ -940,7 +705,6 @@ onMounted(() => {
   box-shadow: 0 0 0 2px rgba(236,72,153,0.2) !important;
 }
 
-
 .comment-workspace :deep(button) {
   border-radius: 6px !important;
   padding: 8px 16px !important;
@@ -999,42 +763,32 @@ onMounted(() => {
 .settings-overlay {
   position: fixed;
   inset: 0;
-
   background: rgba(0,0,0,.65);
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   z-index: 9999;
-
   backdrop-filter: blur(6px);
 }
 
 .settings-modal {
   width: 100%;
   max-width: 500px;
-
   background: #0d0d0d;
-
   border: 1px solid rgba(255,255,255,.08);
-
   border-radius: 18px;
-
-  box-shadow:
-      0 25px 80px rgba(0,0,0,.8),
-      inset 0 1px 0 rgba(255,255,255,.05);
-
+  box-shadow: 0 25px 80px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05);
   overflow: hidden;
+  max-height: 90vh; 
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-header{
   display:flex;
   justify-content:space-between;
   align-items:center;
-
   padding:22px 28px;
-
   border-bottom:1px solid #1e1e1e;
 }
 
@@ -1046,13 +800,9 @@ onMounted(() => {
 .close-btn{
   background:none;
   border:none;
-
   color:#888;
-
   font-size:1.4rem;
-
   cursor:pointer;
-
   transition:.2s;
 }
 
@@ -1061,116 +811,88 @@ onMounted(() => {
 }
 
 .settings-body{
-
   padding:28px;
-
   display:flex;
-
   flex-direction:column;
-
   gap:22px;
+  overflow-y: auto; 
 }
 
 .settings-body .field{
-
   display:flex;
-
   flex-direction:column;
-
   gap:8px;
 }
 
 .settings-body label{
-
   font-size:.8rem;
-
   color:#888;
-
   text-transform:uppercase;
-
   letter-spacing:.08em;
 }
 
 .settings-body input{
-
   background:#080808;
-
   border:1px solid rgba(255,255,255,.1);
-
   color:white;
-
   border-radius:10px;
-
   padding:14px 16px;
-
   font-size:.95rem;
-
   outline:none;
-
   transition:.2s;
 }
 
 .settings-body input:focus{
-
   border-color:#4caf7d;
-
   box-shadow:0 0 0 3px rgba(76,175,125,.15);
 }
 
 .settings-footer{
-
   display:flex;
-
   justify-content:flex-end;
-
   gap:12px;
-
   padding:24px 28px;
-
   border-top:1px solid #1e1e1e;
 }
 
 .secondary-btn{
-
   background:transparent;
-
   color:#999;
-
   border:1px solid #333;
-
   border-radius:10px;
-
   padding:10px 18px;
-
   cursor:pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .secondary-btn:hover{
-
   border-color:#555;
-
   color:white;
 }
 
+.secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .primary-btn{
-    background:#4caf7d;
-
-    color:white;
-
-    border:none;
-
-    border-radius:10px;
-
-    padding:10px 22px;
-
-    font-weight:600;
-
-    cursor:pointer;
-
-    transition:.2s;
+  background:#4caf7d;
+  color:white;
+  border:none;
+  border-radius:10px;
+  padding:10px 22px;
+  font-weight:600;
+  cursor:pointer;
+  transition:.2s;
 }
 
 .primary-btn:hover{
-    background:#5bb987;
+  background:#5bb987;
+}
+
+.primary-btn:disabled{
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
