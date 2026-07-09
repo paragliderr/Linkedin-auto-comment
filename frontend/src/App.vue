@@ -118,8 +118,22 @@
               <span class="badge" :class="post.status" v-if="!post.isExpanded">{{ post.status }}</span>
             </button>
             <div class="comment-workspace" v-show="post.isExpanded">
-              <div class="section-header">
-                <span class="section-title text-pink">AI Generated Comment</span>
+              
+              <div class="section-header ai-header-controls">
+                <div class="title-with-dropdown">
+                  <span class="section-title text-pink">AI Generated Comment</span>
+                  <select v-model="post.comment_mode" class="pink-dropdown">
+                    <option value="api">Default (With API)</option>
+                    <option value="browser">Without API</option>
+                  </select>
+                </div>
+                <button v-if="post.comment_mode === 'browser'" class="green-open-btn" @click="openTargetChatbot(post)">
+                  Open Chatbot
+                </button>
+              </div>
+              
+              <div v-if="post.comment_mode === 'browser'" class="manual-paste-hint">
+                Chatbot opened. Please manually paste the prompt/comment there, save the result here, and hit post/edit below.
               </div>
               <CommentEditor :post="post" />
             </div>
@@ -152,37 +166,25 @@
           </div>
 
           <div class="field">
-            <label>Comment Source</label>
+            <label>Automation Mode</label>
             <div class="mini-toggle" style="display:inline-flex; margin-top:4px;">
-              <button :class="{ active: settings.comment_source === 'api' }" @click="settings.comment_source = 'api'" type="button">API</button>
-              <button :class="{ active: settings.comment_source === 'browser' }" @click="settings.comment_source = 'browser'" type="button">Browser Chatbot</button>
+              <button :class="{ active: settings.comment_source === 'api' }" @click="settings.comment_source = 'api'" type="button">Default (With API)</button>
+              <button :class="{ active: settings.comment_source === 'browser' }" @click="settings.comment_source = 'browser'" type="button">Without API</button>
             </div>
           </div>
 
-          <template v-if="settings.comment_source === 'browser'">
+          <div class="browser-settings-wrapper" v-if="settings.comment_source === 'browser'">
             <div class="field">
-              <label>Chatbot URL</label>
-              <input v-model="settings.browser_ai_url" placeholder="https://chat.openai.com/" />
-            </div>
-            <div class="field">
-              <label>Input Box Selector</label>
-              <input v-model="settings.browser_ai_input_css" placeholder="#prompt-textarea" />
-            </div>
-            <div class="field">
-              <label>Send Button Selector</label>
-              <input v-model="settings.browser_ai_send_css" placeholder="button[data-testid='send-button']" />
-            </div>
-            <div class="field">
-              <label>Reply Selector</label>
-              <input v-model="settings.browser_ai_reply_css" placeholder="div[data-message-author-role='assistant']" />
+              <label>Chatbot Website Name / URL</label>
+              <input v-model="settings.browser_ai_url" placeholder="e.g. https://chatgpt.com/" />
             </div>
             
             <button class="secondary-btn" style="width: 100%; margin-top: 8px; text-align: center;" type="button" @click="startBrowserAiSession" :disabled="startingBrowserAi">
-              {{ startingBrowserAi ? "Opening…" : "Start Browser Session" }}
+              {{ startingBrowserAi ? "Opening…" : "Open & Save Login Session" }}
             </button>
             
             <div class="session-hint" :class="browserAiHintClass" v-if="browserAiHint">{{ browserAiHint }}</div>
-          </template>
+          </div>
 
         </div>
 
@@ -218,7 +220,6 @@ const userGoal         = ref("")
 const showSettings     = ref(false)
 const savingSettings   = ref(false)
 
-// UPDATED: Added Browser AI fields to settings ref
 const settings = ref({ 
   api_key: "", 
   base_url: "", 
@@ -230,7 +231,6 @@ const settings = ref({
   browser_ai_reply_css: ""
 })
 
-// NEW: Browser AI specific refs
 const startingBrowserAi = ref(false)
 const browserAiHint = ref("")
 const browserAiHintClass = ref("")
@@ -298,31 +298,38 @@ async function startNewSession() {
   } catch (e) { console.error(e); } finally { startingSession.value = false; }
 }
 
-// NEW: Function to start Browser AI Session
 async function startBrowserAiSession() {
   startingBrowserAi.value = true
   browserAiHint.value = "Opening browser…"
   browserAiHintClass.value = "info"
   try {
     const res = await api.post("/browser-ai/start", {
-      url: settings.value.browser_ai_url,
-      input_css: settings.value.browser_ai_input_css,
-      send_css: settings.value.browser_ai_send_css,
-      reply_css: settings.value.browser_ai_reply_css
+      url: settings.value.browser_ai_url
     })
-    if (res.data.status === "needs_manual_login") {
-      browserAiHint.value = "Log in in the opened window, then click again to save."
+    
+    // Explicitly handle requirement: if not logged in -> "first please login"
+    if (res.data.status === "needs_manual_login" || !res.data.logged_in) {
+      browserAiHint.value = "Error: First please login. Session will save once done."
       browserAiHintClass.value = "warning"
     } else {
-      browserAiHint.value = "✓ Session active"
+      browserAiHint.value = "✓ Session saved"
       browserAiHintClass.value = "success"
     }
   } catch (err) {
     console.error(err)
-    browserAiHint.value = "Failed to open session — check backend"
+    browserAiHint.value = "Error: First please login (Failed to detect session)"
     browserAiHintClass.value = "error"
   } finally {
     startingBrowserAi.value = false
+  }
+}
+
+function openTargetChatbot(post) {
+  if (settings.value.browser_ai_url) {
+    window.open(settings.value.browser_ai_url, '_blank')
+  } else {
+    alert("Please configure your Chatbot Website URL in settings first.")
+    openSettings()
   }
 }
 
@@ -356,7 +363,12 @@ async function runPipeline() {
       jobStatus = (await api.get(`/comments/run/status/${jobId}`)).data.status
     }
     const history = await getHistory()
-    posts.value = history.map(p => ({ ...p, selected: false, isExpanded: false }))
+    posts.value = history.map(p => ({ 
+      ...p, 
+      selected: false, 
+      isExpanded: false,
+      comment_mode: settings.value.comment_source || 'api'
+    }))
     status.value = `Done — ${history.length - prevCount} new posts`
   } catch (e) { console.error(e); status.value = "Failed"; statusClass.value = "error" } finally { loading.value = false }
 }
@@ -366,7 +378,6 @@ async function openSettings() {
   try {
     const response = await api.get("/settings")
     settings.value = { ...settings.value, ...response.data }
-    // Ensure default fallback if backend is empty
     if (!settings.value.comment_source) settings.value.comment_source = 'api'
   } catch (error) {
     console.error("Failed to load settings:", error)
@@ -396,7 +407,8 @@ async function loadComments() {
     edited_comment: post.generated_comment,
     selected: false,
     posted: post.status === "posted",
-    isExpanded: false 
+    isExpanded: false,
+    comment_mode: settings.value.comment_source || 'api'
   }))
 }
 
@@ -513,9 +525,7 @@ onMounted(() => { loadComments(); checkSession(); })
   color: #111; 
   box-shadow: 0 4px 12px rgba(255,255,255,0.1); 
 }
-.session-toggle button.disabled {
-  opacity: 0.5;
-}
+.session-toggle button.disabled { opacity: 0.5; }
 .session-toggle .toggle-text { 
   max-width: 0; 
   opacity: 0; 
@@ -543,6 +553,7 @@ onMounted(() => { loadComments(); checkSession(); })
 .session-hint.success { background: rgba(76, 175, 125, 0.1); color: #4caf7d; border: 1px solid rgba(76, 175, 125, 0.3); }
 .session-hint.info { background: rgba(100, 181, 246, 0.1); color: #64b5f6; border: 1px solid rgba(100, 181, 246, 0.3); }
 .session-hint.checking { color: #777; }
+.session-hint.error { background: rgba(224, 92, 92, 0.1); color: #e05c5c; border: 1px solid rgba(224, 92, 92, 0.3); }
 
 .super-field { width: 100%; max-width: 720px; text-align: center; }
 .super-field label { display: block; font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 10px; }
@@ -642,6 +653,63 @@ onMounted(() => { loadComments(); checkSession(); })
 
 .text-pink { color: #ec4899 !important; }
 
+/* AI Header Controls Added Logic */
+.ai-header-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.title-with-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pink-dropdown {
+  background: rgba(236, 72, 153, 0.05);
+  color: #ec4899;
+  border: 1px solid rgba(236, 72, 153, 0.4);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.2);
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pink-dropdown:focus, .pink-dropdown:hover {
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+  border-color: #ec4899;
+}
+.green-open-btn {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+  transition: all 0.2s;
+}
+.green-open-btn:hover {
+  background: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.45);
+}
+.manual-paste-hint {
+  color: #a3a3a3;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  border-radius: 6px;
+  border-left: 3px solid #10b981;
+}
+
 .expand-toggle-btn {
   display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; background: #111111;
   border: none; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); color: #aaa;
@@ -700,199 +768,6 @@ onMounted(() => { loadComments(); checkSession(); })
 .comment-workspace :deep(textarea:focus),
 .comment-workspace :deep(input:focus),
 .comment-workspace :deep([contenteditable]:focus) { 
-  border-color: #ec4899 !important; 
-  outline: none !important; 
-  box-shadow: 0 0 0 2px rgba(236,72,153,0.2) !important;
-}
-
-.comment-workspace :deep(button) {
-  border-radius: 6px !important;
-  padding: 8px 16px !important;
-  font-size: 0.85rem !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-}
-
-.comment-workspace :deep(button:nth-of-type(1)) {
-  background: rgba(168, 85, 247, 0.1) !important;
-  border: 1px solid #a855f7 !important; 
-  color: #d8b4fe !important;
-}
-.comment-workspace :deep(button:nth-of-type(1):hover) {
-  background: rgba(168, 85, 247, 0.25) !important;
-  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3) !important;
-}
-
-.comment-workspace :deep(button:nth-of-type(2)) {
-  background: #0a192f !important;
-  border: 1px solid #172a45 !important;
-  color: #64b5f6 !important;
-}
-.comment-workspace :deep(button:nth-of-type(2):hover) {
-  background: #112240 !important;
-  border-color: #64b5f6 !important;
-  box-shadow: 0 4px 16px rgba(100, 181, 246, 0.3) !important;
-}
-
-.comment-workspace :deep(.edited),
-.comment-workspace :deep(.badge.edited),
-.comment-workspace :deep(.editor-badge) {
-  background: rgba(245, 158, 11, 0.15) !important;
-  color: #fbbf24 !important;
-  border: 1px solid rgba(245, 158, 11, 0.4) !important;
-  padding: 4px 12px !important;
-  border-radius: 6px !important;
-  font-weight: 700 !important;
-  font-size: 0.75rem !important;
-  text-transform: uppercase !important;
-}
-
-.empty { padding: 80px 36px; text-align: center; color: #666; font-size: 1rem; }
-
-@media (max-width: 760px) {
-  .toolbar { flex-direction: column; align-items: flex-start; }
-  .toolbar-left, .toolbar-right { width: 100%; flex-wrap: wrap; }
-  .super-input { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .inline-match-mode { width: 100%; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);}
-  .inline-match-mode .divider { display: none; }
-}
-
-/* ================= SETTINGS MODAL ================= */
-
-.settings-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(6px);
-}
-
-.settings-modal {
-  width: 100%;
-  max-width: 500px;
-  background: #0d0d0d;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 18px;
-  box-shadow: 0 25px 80px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05);
-  overflow: hidden;
-  max-height: 90vh; 
-  display: flex;
-  flex-direction: column;
-}
-
-.settings-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:22px 28px;
-  border-bottom:1px solid #1e1e1e;
-}
-
-.settings-header h2{
-  font-size:1.35rem;
-  color:white;
-}
-
-.close-btn{
-  background:none;
-  border:none;
-  color:#888;
-  font-size:1.4rem;
-  cursor:pointer;
-  transition:.2s;
-}
-
-.close-btn:hover{
-  color:white;
-}
-
-.settings-body{
-  padding:28px;
-  display:flex;
-  flex-direction:column;
-  gap:22px;
-  overflow-y: auto; 
-}
-
-.settings-body .field{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-
-.settings-body label{
-  font-size:.8rem;
-  color:#888;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-}
-
-.settings-body input{
-  background:#080808;
-  border:1px solid rgba(255,255,255,.1);
-  color:white;
-  border-radius:10px;
-  padding:14px 16px;
-  font-size:.95rem;
-  outline:none;
-  transition:.2s;
-}
-
-.settings-body input:focus{
-  border-color:#4caf7d;
-  box-shadow:0 0 0 3px rgba(76,175,125,.15);
-}
-
-.settings-footer{
-  display:flex;
-  justify-content:flex-end;
-  gap:12px;
-  padding:24px 28px;
-  border-top:1px solid #1e1e1e;
-}
-
-.secondary-btn{
-  background:transparent;
-  color:#999;
-  border:1px solid #333;
-  border-radius:10px;
-  padding:10px 18px;
-  cursor:pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.secondary-btn:hover{
-  border-color:#555;
-  color:white;
-}
-
-.secondary-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.primary-btn{
-  background:#4caf7d;
-  color:white;
-  border:none;
-  border-radius:10px;
-  padding:10px 22px;
-  font-weight:600;
-  cursor:pointer;
-  transition:.2s;
-}
-
-.primary-btn:hover{
-  background:#5bb987;
-}
-
-.primary-btn:disabled{
-  opacity: 0.5;
-  cursor: not-allowed;
+  border-color: #ec4899 !important;
 }
 </style>
