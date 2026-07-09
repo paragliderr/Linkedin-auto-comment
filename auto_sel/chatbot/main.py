@@ -37,7 +37,7 @@ def main():
     targets = df[needs_comment]
 
     if targets.empty:
-        print("✓ All posts already have comments. Nothing to do.")
+        print(" All posts already have comments. Nothing to do.")
         return
 
     print(f"\nGenerating comments for {len(targets)} post(s)...\n")
@@ -50,9 +50,9 @@ def main():
 
         if comment:
             df.at[idx, "generated_comment"] = comment
-            print(f"           ✓ Comment written")
+            print(f"            Comment written")
         else:
-            print(f"           ✗ Failed — left blank")
+            print(f"            Failed — left blank")
 
         df.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
 

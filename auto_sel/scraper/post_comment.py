@@ -16,35 +16,69 @@ def _type_into_editor(driver, box, text):
     time.sleep(1.5)
 
 
+def _find_comment_button(driver, timeout=10):
+    """Locate the post-level 'Comment' action button. Matches loosely
+    against visible text OR aria-label, since LinkedIn's markup can attach
+    the label to either depending on layout/version, and can append a
+    count (e.g. 'Comment\\n42') which breaks an exact string match."""
+
+    def _locate(d):
+        candidates = d.find_elements(By.TAG_NAME, "button")
+        for btn in candidates:
+            try:
+                label = (btn.get_attribute("aria-label") or "").strip().lower()
+                text = (btn.text or "").strip().lower()
+                visible = btn.is_displayed()
+            except StaleElementReferenceException:
+                continue
+
+            if not visible:
+                continue
+
+            if text.startswith("comment") or "comment" in label:
+                return btn
+        return False
+
+    try:
+        return WebDriverWait(driver, timeout).until(_locate)
+    except Exception:
+        return None
+
+
 def post_comment(driver, post_url: str, comment_text: str) -> bool:
     if not post_url:
         raise ValueError("post_url is required")
 
     driver.get(post_url)
-    time.sleep(4)
+    time.sleep(2)
+
+    # Nudge a scroll to trigger any lazy-rendered engagement bar before searching
+    driver.execute_script("window.scrollBy(0, 300);")
+    time.sleep(1.5)
 
     try:
-
-        action_comment_btn = None
-        for btn in driver.find_elements(By.TAG_NAME, "button"):
-            try:
-                if btn.text.strip().lower() == "comment":
-                    action_comment_btn = btn
-                    break
-            except StaleElementReferenceException:
-                continue
+        action_comment_btn = _find_comment_button(driver)
 
         if not action_comment_btn:
             print("Comment button not found")
+            # TEMP DEBUG — remove once this is confirmed working again.
+            # Prints every button's aria-label/text so we can see what
+            # LinkedIn is actually rendering right now.
+            debug_buttons = [
+                (b.get_attribute("aria-label") or b.text)
+                for b in driver.find_elements(By.TAG_NAME, "button")
+            ][:20]
+            print("DEBUG: buttons on page:", debug_buttons)
             return False
 
         driver.execute_script("arguments[0].scrollIntoView({block:'center'});", action_comment_btn)
         time.sleep(0.8)
         driver.execute_script("arguments[0].click();", action_comment_btn)
         time.sleep(2.5)
+
         comment_box = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "div[contenteditable='true'][aria-label*='comment']")
+                (By.CSS_SELECTOR, "div[contenteditable='true'][aria-label*='comment' i]")
             )
         )
         driver.execute_script("arguments[0].scrollIntoView({block:'center'});", comment_box)
