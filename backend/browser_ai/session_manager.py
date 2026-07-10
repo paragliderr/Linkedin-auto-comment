@@ -1,66 +1,81 @@
 import pickle
 import os
+from urllib.parse import urlparse
 from auto_sel.utils.driver import get_driver
-from backend.browser_ai.adapters import ChatSiteAdapter
 
 _driver = None
-_adapter = None
+_active_url = None
 
-COOKIE_PATH = os.path.join("user_data", "browserai_cookies.pkl")
+COOKIE_DIR = os.path.join("user_data", "browser_ai_sessions")
 
 
-def start_session(url: str, input_css: str, send_css: str, reply_css: str):
-    global _driver, _adapter
+def _domain_key(url: str) -> str:
+    netloc = urlparse(url).netloc or url
+    return netloc.replace(":", "_").replace("/", "_")
 
-    if _driver is not None:
-        try:
-            _ = _driver.current_url
-            return {"status": "already_running"}
-        except Exception:
-            _driver = None
 
-    os.makedirs("user_data", exist_ok=True)
+def _cookie_path(url: str) -> str:
+    os.makedirs(COOKIE_DIR, exist_ok=True)
+    return os.path.join(COOKIE_DIR, f"{_domain_key(url)}.pkl")
 
-    _adapter = ChatSiteAdapter(url, input_css, send_css, reply_css)
+
+def _driver_alive() -> bool:
+    global _driver
+    if _driver is None:
+        return False
+    try:
+        _ = _driver.current_url
+        return True
+    except Exception:
+        _driver = None
+        return False
+
+
+def start_or_save(url: str):
+    """Single entry point behind the 'Open & Save Login Session' button.
+
+    First click (no browser open yet): opens the site, loads a saved
+    session if one exists for this domain, or waits for manual login.
+
+    Second click (browser already open from the first click): assumes
+    the user has now logged in manually, and saves the current cookies.
+    """
+    global _driver, _active_url
+
+    if not url:
+        raise ValueError("url is required")
+
+    if _driver_alive() and _active_url == url:
+
+        with open(_cookie_path(url), "wb") as f:
+            pickle.dump(_driver.get_cookies(), f)
+        return {"status": "saved", "logged_in": True}
+
+    if _driver_alive():
+        _driver.quit()
+
     _driver = get_driver()
+    _active_url = url
     _driver.get(url)
 
-    if os.path.exists(COOKIE_PATH):
-        with open(COOKIE_PATH, "rb") as f:
+    cookie_path = _cookie_path(url)
+    if os.path.exists(cookie_path):
+        with open(cookie_path, "rb") as f:
             for cookie in pickle.load(f):
                 try:
                     _driver.add_cookie(cookie)
                 except Exception:
                     pass
         _driver.refresh()
-        return {"status": "restored_session"}
+        return {"status": "restored_session", "logged_in": True}
 
-    return {"status": "needs_manual_login", "message": "Log in in the opened window, then call /save-session"}
-
-
-def save_session():
-    if _driver is None:
-        return {"status": "no_active_session"}
-    os.makedirs("user_data", exist_ok=True)
-    with open(COOKIE_PATH, "wb") as f:
-        pickle.dump(_driver.get_cookies(), f)
-    return {"status": "saved"}
-
-
-def send_message(message: str) -> str:
-    if _driver is None or _adapter is None:
-        raise RuntimeError("No active browser-chat session — call /start first")
-    return _adapter.send_message(_driver, message)
+    return {"status": "needs_manual_login", "logged_in": False}
 
 
 def close_session():
-    global _driver, _adapter
-    if _driver is not None:
+    global _driver, _active_url
+    if _driver_alive():
         _driver.quit()
     _driver = None
-    _adapter = None
+    _active_url = None
     return {"status": "closed"}
-
-
-def check_session():
-    return {"exists": os.path.exists(COOKIE_PATH)}
