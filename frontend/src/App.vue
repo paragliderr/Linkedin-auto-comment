@@ -357,19 +357,17 @@ async function runPipeline() {
     const params = { scraper_type: selectedScraper.value, session_type: sessionType.value, match_mode: matchMode.value, goal: userGoal.value, keywords: keywords.value }
     const response = await api.post("/comments/run", null, { params })
     const jobId = response.data
-    let jobStatus = "running"
-    while (jobStatus === "running") {
+    let job = null
+    while (true) { 
       await new Promise(r => setTimeout(r, 2000))
-      jobStatus = (await api.get(`/comments/run/status/${jobId}`)).data.status
+      job = (await api.get(`/comments/run/status/${jobId}`)).data
+      if (job.status !== "running") {
+         break
+      }
     }
-    const history = await getHistory()
-    posts.value = history.map(p => ({ 
-      ...p, 
-      selected: false, 
-      isExpanded: false,
-      comment_mode: settings.value.comment_source || 'api'
-    }))
-    status.value = `Done — ${history.length - prevCount} new posts`
+    await loadComments()
+    const newPosts = job.result?.length || 0
+    status.value = `Done — ${newPosts} new posts`
   } catch (e) { console.error(e); status.value = "Failed"; statusClass.value = "error" } finally { loading.value = false }
 }
 
@@ -769,5 +767,106 @@ onMounted(() => { loadComments(); checkSession(); })
 .comment-workspace :deep(input:focus),
 .comment-workspace :deep([contenteditable]:focus) { 
   border-color: #ec4899 !important;
+}
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+}
+
+.settings-modal {
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 28px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.settings-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settings-footer {
+  padding: 20px 28px;
+  border-top: 1px solid #2a2a2a;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #111;
+}
+
+.settings-body .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-body label {
+  font-size: 14px;
+  color: #d1d5db;
+  font-weight: 600;
+}
+
+.settings-body input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #181818;
+  color: white;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: white;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: #4caf7d;
+  color: white;
+  border: none;
+}
+
+.secondary-btn {
+  background: transparent;
+  color: white;
+  border: 1px solid #444;
 }
 </style>
