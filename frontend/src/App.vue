@@ -118,7 +118,7 @@
               <span class="badge" :class="post.status" v-if="!post.isExpanded">{{ post.status }}</span>
             </button>
             <div class="comment-workspace" v-show="post.isExpanded">
-              
+
               <div class="section-header ai-header-controls">
                 <div class="title-with-dropdown">
                   <span class="section-title text-pink">AI Generated Comment</span>
@@ -128,13 +128,24 @@
                   </select>
                 </div>
                 <button v-if="post.comment_mode === 'browser'" class="green-open-btn" @click="openTargetChatbot(post)">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
                   Open Chatbot
                 </button>
               </div>
-              
+
               <div v-if="post.comment_mode === 'browser'" class="manual-paste-hint">
-                Chatbot opened. Please manually paste the prompt/comment there, save the result here, and hit post/edit below.
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>Chatbot opened — write or refine your comment there, then paste the final result below.</span>
               </div>
+
               <CommentEditor :post="post" />
             </div>
           </div>
@@ -150,11 +161,11 @@
           <h2>Settings</h2>
           <button class="close-btn" @click="showSettings = false">✕</button>
         </div>
-        
+
         <div class="settings-body">
           <div class="field">
             <label>API Key</label>
-            <input v-model="settings.api_key" type="password" placeholder="Enter key" />
+            <input v-model="settings.api_key" type="password" placeholder="Enter your API key" />
           </div>
           <div class="field">
             <label>Base URL</label>
@@ -167,7 +178,7 @@
 
           <div class="field">
             <label>Automation Mode</label>
-            <div class="mini-toggle" style="display:inline-flex; margin-top:4px;">
+            <div class="mini-toggle settings-mode-toggle">
               <button :class="{ active: settings.comment_source === 'api' }" @click="settings.comment_source = 'api'" type="button">Default (With API)</button>
               <button :class="{ active: settings.comment_source === 'browser' }" @click="settings.comment_source = 'browser'" type="button">Without API</button>
             </div>
@@ -178,11 +189,11 @@
               <label>Chatbot Website Name / URL</label>
               <input v-model="settings.browser_ai_url" placeholder="e.g. https://chatgpt.com/" />
             </div>
-            
-            <button class="secondary-btn" style="width: 100%; margin-top: 8px; text-align: center;" type="button" @click="startBrowserAiSession" :disabled="startingBrowserAi">
+
+            <button class="secondary-btn full-width-btn" type="button" @click="startBrowserAiSession" :disabled="startingBrowserAi">
               {{ startingBrowserAi ? "Opening…" : "Open & Save Login Session" }}
             </button>
-            
+
             <div class="session-hint" :class="browserAiHintClass" v-if="browserAiHint">{{ browserAiHint }}</div>
           </div>
 
@@ -190,7 +201,9 @@
 
         <div class="settings-footer">
           <button class="secondary-btn" @click="showSettings = false">Cancel</button>
-          <button class="primary-btn" :disabled="savingSettings" @click="saveSettings">Save</button>
+          <button class="primary-btn" :disabled="savingSettings" @click="saveSettings">
+            {{ savingSettings ? "Saving..." : "Save" }}
+          </button>
         </div>
       </div>
     </div>
@@ -306,8 +319,7 @@ async function startBrowserAiSession() {
     const res = await api.post("/browser-ai/start", {
       url: settings.value.browser_ai_url
     })
-    
-    // Explicitly handle requirement: if not logged in -> "first please login"
+
     if (res.data.status === "needs_manual_login" || !res.data.logged_in) {
       browserAiHint.value = "Error: First please login. Session will save once done."
       browserAiHintClass.value = "warning"
@@ -653,12 +665,14 @@ onMounted(() => { loadComments(); checkSession(); })
 
 .text-pink { color: #ec4899 !important; }
 
-/* AI Header Controls Added Logic */
+/* AI Header Controls */
 .ai-header-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 .title-with-dropdown {
   display: flex;
@@ -666,49 +680,71 @@ onMounted(() => { loadComments(); checkSession(); })
   gap: 12px;
 }
 .pink-dropdown {
-  background: rgba(236, 72, 153, 0.05);
+  appearance: none;
+  background: rgba(236, 72, 153, 0.08);
   color: #ec4899;
-  border: 1px solid rgba(236, 72, 153, 0.4);
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 0.75rem;
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  border-radius: 20px;
+  padding: 5px 30px 5px 14px;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  box-shadow: 0 0 10px rgba(236, 72, 153, 0.2);
+  letter-spacing: 0.03em;
   outline: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ec4899' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
 }
-.pink-dropdown:focus, .pink-dropdown:hover {
-  box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+.pink-dropdown:hover {
+  background-color: rgba(236, 72, 153, 0.14);
   border-color: #ec4899;
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.25);
 }
+.pink-dropdown:focus {
+  border-color: #ec4899;
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.15);
+}
+.pink-dropdown option {
+  background: #0d0d0d;
+  color: #e0e0e0;
+}
+
 .green-open-btn {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-  border: 1px solid #10b981;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(76, 175, 125, 0.08);
+  color: #4caf7d;
+  border: 1px solid rgba(76, 175, 125, 0.4);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 .green-open-btn:hover {
-  background: rgba(16, 185, 129, 0.2);
-  box-shadow: 0 0 18px rgba(16, 185, 129, 0.45);
+  background: rgba(76, 175, 125, 0.18);
+  border-color: #4caf7d;
+  box-shadow: 0 0 14px rgba(76, 175, 125, 0.25);
 }
+
 .manual-paste-hint {
-  color: #a3a3a3;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #999;
+  font-size: 0.8rem;
+  line-height: 1.4;
   margin-bottom: 16px;
-  font-style: italic;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 10px;
-  border-radius: 6px;
-  border-left: 3px solid #10b981;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
+.manual-paste-hint svg { flex-shrink: 0; margin-top: 1px; color: #4caf7d; }
 
 .expand-toggle-btn {
   display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; background: #111111;
@@ -769,5 +805,177 @@ onMounted(() => { loadComments(); checkSession(); })
 .comment-workspace :deep(input:focus),
 .comment-workspace :deep([contenteditable]:focus) { 
   border-color: #ec4899 !important;
+}
+
+/* ================= SETTINGS MODAL ================= */
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(6px);
+}
+
+.settings-modal {
+  width: 100%;
+  max-width: 500px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  box-shadow:
+      0 25px 80px rgba(0,0,0,.8),
+      inset 0 1px 0 rgba(255,255,255,.05);
+  overflow: hidden;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 28px;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+}
+
+.settings-header h2 {
+  font-size: 1.35rem;
+  color: white;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: .2s;
+  line-height: 1;
+}
+
+.close-btn:hover { color: white; }
+
+.settings-body {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow-y: auto;
+}
+
+.settings-body .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-body label {
+  font-size: .8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.settings-body input {
+  background: #080808;
+  border: 1px solid rgba(255,255,255,.1);
+  color: white;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: .95rem;
+  outline: none;
+  transition: .2s;
+}
+
+.settings-body input:focus {
+  border-color: #4caf7d;
+  box-shadow: 0 0 0 3px rgba(76,175,125,.15);
+}
+
+.settings-mode-toggle {
+  width: 100%;
+  padding: 4px;
+}
+.settings-mode-toggle button {
+  flex: 1;
+  text-align: center;
+  padding: 10px 12px;
+}
+
+.browser-settings-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(76, 175, 125, 0.04);
+  border: 1px solid rgba(76, 175, 125, 0.15);
+  border-radius: 12px;
+}
+
+.full-width-btn {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px 28px;
+  border-top: 1px solid #1e1e1e;
+  flex-shrink: 0;
+}
+
+.secondary-btn {
+  background: transparent;
+  color: #999;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.secondary-btn:hover {
+  border-color: #555;
+  color: white;
+}
+
+.secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary-btn {
+  background: #4caf7d;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 22px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.primary-btn:hover { background: #5bb987; }
+.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.empty { padding: 80px 36px; text-align: center; color: #666; font-size: 1rem; }
+
+@media (max-width: 760px) {
+  .toolbar { flex-direction: column; align-items: flex-start; }
+  .toolbar-left, .toolbar-right { width: 100%; flex-wrap: wrap; }
+  .super-input { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .inline-match-mode { width: 100%; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);}
+  .inline-match-mode .divider { display: none; }
 }
 </style>
